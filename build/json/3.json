@@ -2,9 +2,9 @@
   "name": "Your Collection #3",
   "description": "Remember to replace this description",
   "image": "ipfs://TESTING/3.png",
-  "dna": "f2b637f7230e0ad8b953f5dcbd0a7229b225f5bf",
+  "dna": "05428b14462f061e5241c867e7a7286d27804bcf",
   "edition": 3,
-  "date": 1665841149748,
+  "date": 1665892375543,
   "attributes": [
     {
       "trait_type": "test",
@@ -12,11 +12,11 @@
     },
     {
       "trait_type": "Back",
-      "value": "Blowhole"
+      "value": "BetaFins"
     },
     {
       "trait_type": "Legs",
-      "value": "BetaLegs"
+      "value": "FinLegs"
     },
     {
       "trait_type": "Arms",
@@ -24,15 +24,15 @@
     },
     {
       "trait_type": "Mouth",
-      "value": "TurtleBeak"
+      "value": "AnglerMouth"
     },
     {
       "trait_type": "Eyes",
-      "value": "AnglerEyes"
+      "value": "EyeScar"
     },
     {
       "trait_type": "Color",
-      "value": "Purple"
+      "value": "Green"
     }
   ],
   "compiler": "Datboi1337 Art Engine (Hashlips fork)"

@@ -3,7 +3,7 @@ const { MODE } = require(`${basePath}/constants/blend_mode.js`);
 const { NETWORK } = require(`${basePath}/constants/network.js`);
 
 const collectionSize = 1000;
-const toCreateNow = 1000;
+const toCreateNow = 30;
 
 const scaleSize = (num) => {
   if (collectionSize === toCreateNow) return num;

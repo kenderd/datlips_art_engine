@@ -2,13 +2,13 @@
   "name": "Your Collection #10",
   "description": "Remember to replace this description",
   "image": "ipfs://TESTING/10.png",
-  "dna": "1cc76f87085c60b12a7b77369099a62f1d2e9dd5",
+  "dna": "2afd8b7706edd5ac6b3d419dde3b2266b8c0a827",
   "edition": 10,
-  "date": 1665841150297,
+  "date": 1665892376387,
   "attributes": [
     {
       "trait_type": "Body",
-      "value": "ScalesForked"
+      "value": "SmoothForked"
     },
     {
       "trait_type": "Head",
@@ -16,11 +16,11 @@
     },
     {
       "trait_type": "Back",
-      "value": "BetaFins"
+      "value": "DolphinFin"
     },
     {
       "trait_type": "Legs",
-      "value": "LureLegs"
+      "value": "BetaLegs"
     },
     {
       "trait_type": "Arms",
@@ -32,7 +32,7 @@
     },
     {
       "trait_type": "Eyes",
-      "value": "EyeScar"
+      "value": "AnglerEyes"
     }
   ],
   "compiler": "Datboi1337 Art Engine (Hashlips fork)"

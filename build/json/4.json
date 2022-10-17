@@ -2,16 +2,12 @@
   "name": "Your Collection #4",
   "description": "Remember to replace this description",
   "image": "ipfs://TESTING/4.png",
-  "dna": "abffff13051ad912e345c276fe18bf4fbb64b79f",
+  "dna": "9d5b39259540da6a57f0b09b6d548f199c19b4b5",
   "edition": 4,
-  "date": 1665841149824,
+  "date": 1665892375662,
   "attributes": [
     {
-      "trait_type": "Body",
-      "value": "ScalesRounded"
-    },
-    {
-      "trait_type": "Head",
+      "trait_type": "test",
       "value": "FishHead"
     },
     {
@@ -20,7 +16,7 @@
     },
     {
       "trait_type": "Legs",
-      "value": "TentacleLegs"
+      "value": "BetaLegs"
     },
     {
       "trait_type": "Arms",
@@ -32,7 +28,11 @@
     },
     {
       "trait_type": "Eyes",
-      "value": "AnglerEyes"
+      "value": "SharkEyes"
+    },
+    {
+      "trait_type": "Color",
+      "value": "Purple"
     }
   ],
   "compiler": "Datboi1337 Art Engine (Hashlips fork)"
