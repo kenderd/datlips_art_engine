@@ -10,14 +10,14 @@ const { rarity_config } = require(`${basePath}/src/config.js`);
 /* **********************
 ******** Options ********
 ********************** */
-const scoreAttribute = false;
-const scoreElement = true;
+const scoreAttribute = false; // Add score to attributes
+const scoreElement = false; // Add score as new element
 
-const rankAttribute = false;
-const rankElement = true;
+const rankAttribute = false; // Add rank to attributes
+const rankElement = true; // Add rank as new element
 
-const rarityAttribute = false;
-const rarityElement = false; 
+const rarityAttribute = true; // Add rarity to attributes
+const rarityElement = false; // Add rarity as new element
 
 const includeTraitPercentages = false;
 

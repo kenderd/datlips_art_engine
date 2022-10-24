@@ -276,7 +276,7 @@ This utility recreates all individual metadata files as well as _metadata.json a
 No edits necessary to use this util. 
 
 ## rarityFromMetadata
-This utility counts all traits and calculates their occurence percentages, calculates scores based on each NFT's traits, ranks each NFT by their score, and determines their named rarity (Common, Uncommon, Rare, Epic, Legendary, Mythic). It also enables the ability to add any or all of this information to the metadata itself! 
+This utility counts all traits and calculates their occurence percentages, calculates scores based on each NFT's traits, ranks each NFT by their score, and determines their named rarity (Common, Uncommon, Rare, Epic, Legendary, Mythic). It also enables the ability to add any or all of this information to the metadata itself as it's own element or as an attribute! 
 
 **NOTE**: This utility replaces the old 'rarity.js' script. 'yarn rarity' will now call this utility.
 <br/>
@@ -285,29 +285,35 @@ This utility counts all traits and calculates their occurence percentages, calcu
 <br/>
 
 **NOTE**: Any attribute with display_type will not include occurance percentage in the value, even if `includeTraitPercentages` is set to true to avoid issues with displaying properly on marketplaces. 
-By default, Rank and Rarity will be added to the metadata when running this utility. You can adjust what will be added to the metadata by editing these items: 
+By default, Rank will be added as an attribute and Rarity will be added as an element to the metadata when running this utility. You can adjust what will be added to the metadata by editing these items: 
 
 ```js
-const includeScore = false;
-const includeRank = true;
-const includeRarity = true;
+const scoreAttribute = false;
+const scoreElement = false;
+
+const rankAttribute = false;
+const rankElement = true;
+
+const rarityAttribute = true;
+const rarityElement = false; 
+
 const includeTraitPercentages = false;
 ```
-includeScore will add a trait to the metadata like:
+scoreAttribute will add a trait to the metadata like:
 ```js
 {
   "trait_type": "rarityScore",
   "value": 173
 }
 ```
-includeRank will add a trait to the metadata like:
+rankAttribute will add a trait to the metadata like:
 ```js
 {
   "trait_type": "Rank",
   "value": 29
 }
 ```
-includeRarity will add a trait to the metadata like:
+rarityAttribute will add a trait to the metadata like:
 ```js
 {
   "trait_type": "Rarity",
