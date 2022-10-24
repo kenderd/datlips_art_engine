@@ -10,11 +10,16 @@ const { rarity_config } = require(`${basePath}/src/config.js`);
 /* **********************
 ******** Options ********
 ********************** */
-const includeScore = true;
-const includeRank = true;
-const includeRarity = true;
-const includeTraitPercentages = true;
+const scoreAttribute = false;
+const scoreElement = true;
 
+const rankAttribute = false;
+const rankElement = true;
+
+const rarityAttribute = false;
+const rarityElement = false; 
+
+const includeTraitPercentages = false;
 
 // Read json data
 let rawdata = fs.readFileSync(`${basePath}/build/json/_metadata.json`);
@@ -113,7 +118,7 @@ if(includeTraitPercentages) {
     let tempAttributes = [];
     attributes.forEach((attribute) => {
       let displayType = attribute.display_type;
-      console.log(displayType);
+      // console.log(displayType);
       let traitType = attribute.trait_type;
       let value = attribute.value;
       if (traitType !== 'rarityScore' && traitType !== 'Rank' && traitType !== 'Rarity') {
@@ -235,17 +240,44 @@ newData.forEach((item) => {
   });
 });
 
+// Add new rarity/rank elements 
+newData.forEach((item) => {
+  let tempScore = item.attributes.filter(obj => obj.trait_type == 'rarityScore')[0].value;
+  let tempRank = item.attributes.filter(obj => obj.trait_type == 'Rank')[0].value;
+  let tempRarity = item.attributes.filter(obj => obj.trait_type == 'Rarity')[0].value;
+  let rarityElements = {};
+  let addScore = scoreElement ? rarityElements['Score'] = tempScore : void(0);
+  let addRank = rankElement ? rarityElements['Rank'] = tempRank : void(0);
+  let addRarity = rarityElement ? rarityElements['Rarity'] = tempRarity : void(0);
+  
+  let tempMetadata = {
+    name: item.name,
+    description: item.description,
+    image: item.image,
+    dna: item.dna,
+    edition: item.edition,
+    date: item.date,
+    ...rarityElements,
+    attributes: item.attributes,
+    compiler: item.compiler,
+  };
+
+  for (var member in item) delete item[member];
+
+  Object.assign(item, tempMetadata);
+});
+
 // Remove any unwanted traits from metadata
 newData.forEach((item) => {
-  if (!includeScore) {
+  if (!scoreAttribute) {
     let result = item.attributes.filter(obj => obj.trait_type !== 'rarityScore');
     item.attributes = result;
   }
-  if (!includeRank) {
+  if (!rankAttribute) {
     let result = item.attributes.filter(obj => obj.trait_type !== 'Rank');
     item.attributes = result;
   }
-  if (!includeRarity) {
+  if (!rarityAttribute) {
     let result = item.attributes.filter(obj => obj.trait_type !== 'Rarity');
     item.attributes = result;
   }
@@ -267,16 +299,28 @@ console.log(layerExport);
 
 fs.writeFileSync(`${basePath}/rarity/json/rarityBreakdown.json`, JSON.stringify(layerExport));
 
-if(includeScore) {
+if (scoreAttribute) {
   console.log(`Added 'rarityScore' to metadata`);
 }
-if(includeRank) {
+if (rankAttribute) {
   console.log(`Added 'Rank' to metadata`);
 }
-if(includeRarity) {
+if (rarityAttribute) {
   console.log(`Added 'Rarity' to metadata`);
 }
-if(includeTraitPercentages) {
+if (includeTraitPercentages) {
   console.log(`Added occurrence % to each trait in metadata`);
+}
+if (scoreElement && scoreAttribute) {
+  console.log(`Please note that both scoreElement and scoreAttribute are set to true, meaning the information is duplicated in the metadata and attributes.
+    It's recommended to set one or the other to false.`)
+}
+if (scoreElement && rankAttribute) {
+  console.log(`Please note that both rankElement and rankAttribute are set to true, meaning the information is duplicated in the metadata and attributes. 
+    It's recommended to set one or the other to false.`)
+}
+if (scoreElement && rarityAttribute) {
+  console.log(`Please note that both rarityElement and rarityAttribute are set to true, meaning the information is duplicated in the metadata and attributes. 
+    It's recommended to set one or the other to false.`)
 }
 console.log(`This data can also be viewed in ${basePath}/rarity/json/rarityBreakdown.json`);
