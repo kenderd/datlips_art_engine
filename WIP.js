@@ -21,6 +21,7 @@ names, or require a delimeter like & and use 'attributeCleanName'.
 I should be able to set growEditionSizeTo to [10,10,10] not [10,20,30]. Maybe even have option to set them to %?
 -1of1 - similar to ultraRare feature, but allow to happen during generation with option to have all normal metadata traits
 set to 1of1 name or for just a single '1of1' trait. Create separate util to create new folder structure for them?
+-Add option to exclude layer from metadata
 */
 
 /* DONE
