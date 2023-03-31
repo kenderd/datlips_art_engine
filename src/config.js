@@ -5,6 +5,7 @@ const { NETWORK } = require(`${basePath}/constants/network.js`);
 const collectionSize = 1000;
 const toCreateNow = 30;
 
+// If using scaleSize system, simply change growEditionSizeTo to use scaleSize(#) instead of #
 const scaleSize = (num) => {
   if (collectionSize === toCreateNow) return num;
   return Math.ceil((num / collectionSize) * toCreateNow);
@@ -45,7 +46,7 @@ const solanaMetadata = {
 // If you have selected Solana then the collection starts from 0 automatically
 const layerConfigurations = [
   {
-    growEditionSizeTo: scaleSize(300),
+    growEditionSizeTo: 5,
     layersOrder: [
       // { name: "SkeletalBody" },
       { name: "Head", options: {layerVariations: 'Color', displayName: 'test',} },
@@ -57,7 +58,7 @@ const layerConfigurations = [
     ],
   },
   {
-    growEditionSizeTo: scaleSize(500),
+    growEditionSizeTo: 15,
     layersOrder: [
       { name: "Body" },
       { name: "Head"},
@@ -70,8 +71,7 @@ const layerConfigurations = [
   },
   {
 
-    growEditionSizeTo: scaleSize(collectionSize),
-
+    growEditionSizeTo: 30,
     layersOrder: [
       { name: "Body" },
       { name: "Head" },

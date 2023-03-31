@@ -201,9 +201,14 @@ const importOldDna = false;
 # Generate NFT in smaller sets for testing
 Adjusting every `growEditionSizeTo` anytime you want to test something out on a smaller scale can be frustrating. This system allows you to set your `collectionSize` once, then your `growEditionSizeTo` definitions are replaced with scaleSize. Ensure the numbers fed to that function add up to your `collectionSize`, and you can change `toCreateNow` on the fly to whatever scale you want to test. All rarity is scaled where applicable, so no need to make weight adjustments!
 ## scaleSize Example
-By default, this repository is working with a collection of 1000. You can test this feature quickly by simply setting `toCreatNow` to a smaller number.
+By default, this repository is not using this system. To enable it, simply change `growEditionSizeTo` to use `scaleSize()` instead of a number. 
+```js
+growEditionSizeTo: scaleSize(300),
+// instead of 
+growEditionSizeTo: 300,
+```
 
-**NOTE**: This feature can be bypassed by setting `growEditionSizeTo` to numbers vs using `scaleSize`. If you do use this feature, `collectionSize` and `toCreateNow` must match to create the full collection!
+**NOTE**: If you do use this feature, `collectionSize` and `toCreateNow` must match to create the full collection!
 
 **TIP**: To avoid potential scaling issues, you can set your final layersOrder to equal `collectionSize`. 
 
