@@ -5,7 +5,7 @@ const isLocal = typeof process.pkg === 'undefined';
 const basePath = isLocal ? process.cwd() : path.dirname(process.execPath);
 const fs = require('fs');
 
-const { rarity_config } = require(`${basePath}/src/config.js`);
+const { rarity_configOLD } = require(`${basePath}/src/config.js`);
 
 /* **********************
 ******** Options ********

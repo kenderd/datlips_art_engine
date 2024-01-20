@@ -20,12 +20,11 @@ const {
   namePrefix,
   network,
   solanaMetadata,
+  SEIMetadata,
   gif,
   resumeNum,
   rarity_config,
-  toCreateNow,
   collectionSize,
-  namedWeight,
   exactWeight,
   layerVariations,
   importOldDna,
@@ -44,6 +43,10 @@ var dnaList = new Set();
 const DNA_DELIMITER = "-";
 const HashlipsGiffer = require(`${basePath}/modules/HashlipsGiffer.js`);
 const oldDna = `${basePath}/build_old/_oldDna.json`;
+const nest = `${basePath}/compatibility/nest.json`;
+const incompatible = `${basePath}/compatibility/compatibility.json`
+let compatibility;
+let incompatibilities;
 
 let hashlipsGiffer = null;
 let allTraitsCount;
@@ -54,7 +57,7 @@ const buildSetup = () => {
     fs.mkdirSync(`${buildDir}/json`);
     fs.mkdirSync(`${buildDir}/images`);
   } else {
-    fs.rmdirSync(buildDir, { recursive: true } );
+    fs.rmSync(buildDir, { recursive: true } );
     fs.mkdirSync(buildDir);
     fs.mkdirSync(`${buildDir}/json`);
     fs.mkdirSync(`${buildDir}/images`);
@@ -74,19 +77,15 @@ const buildSetup = () => {
       dnaList.add(item);
     });
   }
+  let rawNestData = fs.readFileSync(nest);
+  compatibility = JSON.parse(rawNestData);
+  let rawCompatibleData = fs.readFileSync(incompatible);
+  incompatibilities = JSON.parse(rawCompatibleData);
 }
 
-const getRarityWeight = (_str) => {
-  let nameWithoutExtension = _str.slice(0, -4);
-  if (namedWeight) {
-  var nameWithoutWeight = String(
-    nameWithoutExtension.split(rarityDelimiter).pop()
-  )} else {
-  var nameWithoutWeight = Number(
-    nameWithoutExtension.split(rarityDelimiter).pop()
-  )}
-  return nameWithoutWeight;
-};
+function capitalizeFirstLetter(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}
 
 function cleanDna(_str) {
   const withoutOptions = removeQueryStrings(_str);
@@ -100,10 +99,40 @@ const cleanName = (_str) => {
   return nameWithoutWeight;
 };
 
+const getRarityWeight = (_str) => {
+  let weight = capitalizeFirstLetter(_str.slice(0, -4).split(rarityDelimiter).pop());
+  if (exactWeight) {
+    var finalWeight = weight;
+  } else if (isNaN(weight)) {
+    // Ensure non-number weights appropriately adhere to rarity_config
+    if (!rarity_config[weight]) {
+      throw new Error(`'${weight}' contained in ${_str} is not a valid rarity.` +
+      ` Please ensure your weights adhere to rarity_config.`);
+    }
+    let rarity = Object.keys(rarity_config);
+      for (let i = 0; i < rarity.length; i++) {
+        if (rarity[i] == weight && i == 0) {
+          var finalWeight = rarity_config[weight];
+        } else if (rarity[i] == weight) {
+          let min = rarity_config[rarity[i - 1]];
+          let max = rarity_config[rarity[i]];
+          var finalWeight = Math.floor(Math.random() * (max - min) + min);
+        }
+      }
+    
+  } else {
+    var finalWeight = weight;
+  }
+  return Number(finalWeight);
+};
+
 const getElements = (path) => {
   return fs
     .readdirSync(path)
-    .filter((item) => !/(^|\/)\.[^\/\.]/g.test(item))
+    .filter((item) => {
+      const fullPath = path + item;
+      return fs.statSync(fullPath).isFile() && !/(^|\/)\.[^\/\.]/g.test(item);
+    })
     .map((i, index) => {
       if (i.includes("-")) {
         throw new Error(`layer name can not contain dashes, please fix: ${i}`);
@@ -148,13 +177,6 @@ const layersSetup = (layersOrder) => {
   return layers;
 };
 
-// const saveImage = (_editionCount) => {
-//   fs.writeFileSync(
-//     `${buildDir}/images/${_editionCount}.png`,
-//     canvas.toBuffer("image/png")
-//   );
-// };
-
 const saveImage = (_editionCount) => {
   fs.writeFileSync(
     `${buildDir}/images/${_editionCount}.png`,
@@ -186,7 +208,7 @@ const addMetadata = (_dna, _edition) => {
     date: dateTime,
     ...extraMetadata,
     attributes: attributesList,
-    compiler: "Datboi1337 Art Engine (Hashlips fork)",
+    compiler: "datboi1337 Art Engine (Hashlips fork)",
   };
   if (network == NETWORK.sol) {
     tempMetadata = {
@@ -219,10 +241,15 @@ const addMetadata = (_dna, _edition) => {
 };
 
 const addAttributes = (_element) => {
-  let selectedElement = _element.layer.selectedElement;
+  let selectedElement = _element.selectedElement;
   attributesList.push({
-    trait_type: _element.layer.name,
+    trait_type: _element.name,
     value: selectedElement.name,
+    imgData: {
+      path: selectedElement.path,
+      blend: _element.blend,
+      opacity: _element.opacity,
+    }
   });
 };
 
@@ -237,28 +264,6 @@ const addStats = () => {
   });
 }
 
-const loadLayerImg = (_layer) => {
-  return new Promise((resolve, reject) => {
-    let path = _layer.selectedElement.path;
-    if (_layer.layerVariations != undefined) {
-      path = path.split('#')[0];
-      path = path.concat(_layer.variant.concat('.png'));
-      path = path.replace(_layer.ogName, _layer.ogName.concat('-variant'));
-    }
-    if (!fs.existsSync(path)) {
-      throw new Error(`The selected file (${path}) does not exist. Check spelling and location.`);
-    }
-    if (debugLogs) console.log('PATH', { path, exists: fs.existsSync(path) });
-    loadImage(`${path}`)
-      .then((image) => {
-        resolve({ layer: _layer, loadedImage: image });
-      })
-      .catch(() => {
-        reject();
-      });
-  });
-};
-
 const addText = (_sig, x, y, size) => {
   ctx.fillStyle = text.color;
   ctx.font = `${text.weight} ${size}pt ${text.family}`;
@@ -267,6 +272,7 @@ const addText = (_sig, x, y, size) => {
   ctx.fillText(_sig, x, y);
 };
 
+// For reference
 const drawElement = (_renderObject, _index, _layersLen) => {
   ctx.globalAlpha = _renderObject.layer.opacity;
   ctx.globalCompositeOperation = _renderObject.layer.blend;
@@ -290,20 +296,20 @@ const drawElement = (_renderObject, _index, _layersLen) => {
 
 const constructLayerToDna = (_dna = "", _layers = []) => {
   let mappedDnaToLayers = _layers.map((layer, index) => {
+
     if (_dna.split(DNA_DELIMITER)[index] == undefined) {
-      throw new Error(`Some weights in your ${layer.name} folder are either undefined or incorrect.
-      NOTE: All layers must include a weight. If using 'namedWeight' system, all layers must contain NAMED weight, no numbers!`);
+      throw new Error(`Something went wrong. There may be an issue in your ${layer.name} folder,`+
+      ` but this issue hasn't been fully debugged yet. Please try again, and if you continue getting` +
+      ` this error, review weights & file types. NOTE: All traits MUST contain a weight!`);
     }
     let selectedElement = layer.elements.find(
       (e) => e.id == cleanDna(_dna.split(DNA_DELIMITER)[index])
     );
 
     if (_dna.search(selectedElement.name) < 0) {
-      throw new Error(`Some weights in your ${layer.name} folder are either undefined or incorrect.
-      NOTE: All layers must include a weight. If using 'namedWeight' system, all layers must contain NAMED weight, no numbers!`);
+      throw new Error(`There is an issue in your ${layer.name} folder. Please review weights & file types,`+
+      ` then try again. NOTE: All traits MUST contain a weight!`);
     }
-
-    let variant = layer.layerVariations != undefined ? (_dna.split('&').pop()).split(DNA_DELIMITER).shift() : '';
 
     return {
       name: layer.name,
@@ -363,181 +369,123 @@ const isDnaUnique = (_DnaList = new Set(), _dna = "") => {
   return !_DnaList.has(_filteredDNA);
 };
 
-const createDnaNames = (_layers, _variant) => {
+const createDnaExact = (_layers, _remainingInLayersOrder, _currentEdition, _variant, layerConfigIndex) => {
   let randNum = [];
-  _layers.forEach((layer) => {
-    const rarityCount = {
-      Mythic: 0,
-      Legendary: 0,
-      Epic: 0,
-      Rare: 0,
-      Uncommon: 0,
-      Common: 0
-    }
-    var totalWeight = 10000;
-    // Get count of each rarity in layer folders
-    layer.elements.forEach((element) => {
-      switch (element.weight) {
-        case "Mythic":
-          rarityCount.Mythic++;
-          break;
-        case "Legendary":
-          rarityCount.Legendary++;
-          break;
-        case "Epic":
-          rarityCount.Epic++;
-          break;
-        case "Rare":
-          rarityCount.Rare++;
-          break;
-        case "Uncommon":
-          rarityCount.Uncommon++;
-          break;
-        case "Common":
-          rarityCount.Common++;
-          break;
-        default:
-          rarityCount.Common++;
-      }
-    });
-    // Find any missing rarities and log the remainder of 10,000
-    let remainder = 0;
-    for (const key in rarityCount) {
-      let diff = (rarity_config[key]['ranks'][1] - rarity_config[key]['ranks'][0]);
-      if (rarityCount[key] !== 0) {
-        rarityCount[key] = diff / rarityCount[key]
-      } else {
-        remainder += diff;
-        delete rarityCount[key];
-      }
-    }
-    // Split remainder evenly among remaining rarities
-    let remainingRarity = Object.keys(rarityCount).length;
-    remainder /= remainingRarity;
-    for (const key in rarityCount) {
-      rarityCount[key] += remainder;
-    }
-    // Check for any where higher rarity has larger weight than lower rarity
-    let uncommonDiff = (rarityCount.Uncommon > rarityCount.Common) 
-      ? Math.floor(rarityCount.Uncommon - rarityCount.Common) : 0;
-    let rareDiff = (rarityCount.Rare > rarityCount.Uncommon) 
-      ? Math.floor(rarityCount.Rare - rarityCount.Uncommon) : 0;
-    let epicDiff = (rarityCount.Epic > rarityCount.Rare) 
-      ? Math.floor(rarityCount.Epic - rarityCount.Rare) : 0;
-    let legendaryDiff = (rarityCount.Legendary > rarityCount.Epic) 
-      ? Math.floor(rarityCount.Legendary - rarityCount.Epic) : 0;
-    let mythicDiff = (rarityCount.Mythic > rarityCount.Legendary) 
-      ? Math.floor(rarityCount.Mythic - rarityCount.Legendary) : 0;
-    // Redistribute weight to ensure weights match rarities      
-    rarityCount.Common += uncommonDiff;
-    rarityCount.Uncommon -= uncommonDiff;
-    rarityCount.Uncommon += rareDiff;
-    rarityCount.Rare -= rareDiff;
-    rarityCount.Rare += epicDiff;
-    rarityCount.Epic -= epicDiff;
-    rarityCount.Epic += legendaryDiff;
-    rarityCount.Legendary -= legendaryDiff;
-    rarityCount.Legendary += mythicDiff;
-    rarityCount.Mythic -= mythicDiff;
-    // Proceed with random generation: number between 0 - totalWeight
-    let random = Math.floor(Math.random() * totalWeight);
-    for (var i = 0; i < layer.elements.length; i++) {
-      let newWeight = layer.elements[i].weight;
-      // subtract the current weight from the random weight until we reach a sub zero value.
-      random -= rarityCount[newWeight];
-      if (random < 0) {
-        if(layer.layerVariations != undefined) {
-          return randNum.push(
-            `${layer.elements[i].id}:${layer.elements[i].name}& ${_variant}`
-          );
-        } else {
-          return randNum.push(
-            `${layer.elements[i].id}:${layer.elements[i].filename}${
-              layer.bypassDNA ? "?bypassDNA=true" : ""
-            }`
-          );
+  let nestLookup = []
+
+  const incompatibleTraits = Object.keys(incompatibilities);
+
+  // console.log(incompatibilities);
+
+  let restrictedGeneration = false;
+
+  if (incompatibleTraits.length > 0) {
+    restrictedGeneration = true;
+
+    var compatibleChild, compatibleParents, parentIndex, childIndex, compatibleCount;
+    incompatibleTraits.forEach((incompatibility) => {
+      if (incompatibilities[incompatibility].layerIndex == layerConfigIndex) {
+        compatibleChild = [];
+        compatibleChild.push(incompatibility);
+        compatibleParents = incompatibilities[incompatibility].parents;
+        parentIndex = incompatibilities[incompatibility].parentIndex;
+        childIndex = incompatibilities[incompatibility].childIndex
+        compatibleCount = incompatibilities[incompatibility].maxCount;
+
+        if(compatibleCount == 0) {
+          console.log(`All ${compatibleChild} distributed`);
+          delete incompatibilities[incompatibility];
         }
-      } 
-    } 
-  });
-  return randNum.join(DNA_DELIMITER);
-};
+
+      }
 
 
-const createDnaExact = (_layers, _remainingInLayersOrder, _currentEdition, _variant) => {
-  let randNum = [];
-  let layerSizes = allLayerSizes();
+    })
+  }
+
+  // let layerSizes = allLayerSizes();
   _layers.forEach((layer) => {
+    // Fetch compatible traits for current layer based on previous selections
+    if (restrictedGeneration && layer.id === parentIndex && compatibleCount > 0) {
+      var compatibleTraits = compatibleParents;
+      incompatibilities[compatibleChild[0]].maxCount--;
+    } else if (restrictedGeneration && layer.id === childIndex && compatibleCount > 0) {
+      var compatibleTraits = compatibleChild;
+    } else {
+      var compatibleTraits = Object.keys(nestLookup.reduce(
+        (a, trait) => a[trait], compatibility[layerConfigIndex]
+      ));
+    }
+
+    let elements = []
+    for (let i = 0; i < compatibleTraits.length; i++) {
+      for (let j = 0; j < layer.elements.length; j++) {
+        if (layer.elements[j].name == compatibleTraits[i]) {
+          tempElement = {
+            id: layer.elements[j].id,
+            name: layer.elements[j].name,
+            weight: layer.elements[j].weight
+          }
+          elements.push(tempElement);
+        }
+      }
+    }
+
     var totalWeight = 0;
-    let expected = layerSizes[layer.name] - _currentEdition;
-    let remaining = toCreateNow - _currentEdition
-    layer.elements.forEach((element) => {
-      totalWeight += allTraitsCount[element.name];
+
+    elements.forEach((element) => {
+      totalWeight += allTraitsCount[layer.name][element.name];
     });
 
-    // Require totalWeight to match either current remaining layersOrder, overall size for multiple layersOrders, or remaining collectionSize. 
-    if (totalWeight != _remainingInLayersOrder && totalWeight != expected && totalWeight != remaining) {
-      throw new Error(`${layer.name} layer total weight (${totalWeight}) does not match either layersOrder weight (${_remainingInLayersOrder}),
-      overall expected weight from multiple layersOrders (${expected}), or remaining collection size (${remaining})`);
-    };
-
-    // number between 0 - totalWeight
     // We keep the random function here to ensure we don't generate all the same layers back to back.
     let random = Math.floor(Math.random() * totalWeight);
-    for (var i = 0; i < layer.elements.length; i++) {
-      // subtract the current weight from the random weight until we reach a sub zero value.
-      let lookup = allTraitsCount[layer.elements[i].name];
+
+    for (var i = 0; i < elements.length; i++) {
+      // Check allTraitsCount for the selected element 
+      let lookup = allTraitsCount[layer.name][elements[i].name];
       if (lookup > 0) {
-        random -= allTraitsCount[layer.elements[i].name];
+        random -= allTraitsCount[layer.name][elements[i].name];
       }
+      // Subtract the current weight from random until we reach a sub zero value.
       if (random < 0) {
-        if(layer.layerVariations != undefined) {
-          return randNum.push(
-            `${layer.elements[i].id}:${layer.elements[i].name}& ${_variant}`
-          );
-        } else {
-          return randNum.push(
-            `${layer.elements[i].id}:${layer.elements[i].filename}${
-              layer.bypassDNA ? "?bypassDNA=true" : ""
-            }`
-          );
-        }
+        // Append new layer information to nestLookup
+        nestLookup.push(elements[i].name);
+        return randNum.push(
+          `${elements[i].id}:${elements[i].name}& ` +
+          `${layerVariations ? _variant : ""}` +
+          `${layer.bypassDNA ? "?bypassDNA=true" : ""}`
+        );
       }
     }
   });
   return randNum.join(DNA_DELIMITER);
 };
 
-const createDna = (_layers, _variant) => {
-  let randNum = [];
-  _layers.forEach((layer) => {
-    var totalWeight = 0;
-    layer.elements.forEach((element) => {
-      totalWeight += element.weight;
-    });
-    // number between 0 - totalWeight
-    let random = Math.floor(Math.random() * totalWeight);
-    for (var i = 0; i < layer.elements.length; i++) {
-      // subtract the current weight from the random weight until we reach a sub zero value.
-      random -= layer.elements[i].weight;
-      if (random < 0) {
-        if(layer.layerVariations != undefined) {
-          return randNum.push(
-            `${layer.elements[i].id}:${layer.elements[i].name}& ${_variant}`
-          );
-        } else {
-          return randNum.push(
-            `${layer.elements[i].id}:${layer.elements[i].filename}${
-              layer.bypassDNA ? "?bypassDNA=true" : ""
-            }`
-          );
+function countInstances(structure, targetTrait) {
+  let count = 0;
+
+  function traverse(obj, path) {
+    for (const key in obj) {
+      const currentPath = path.concat(key);
+      
+      if (currentPath.includes(targetTrait)) {
+        if (typeof obj[key] === 'object' && Object.keys(obj[key]).length === 0) {
+          count++;
         }
       }
+      
+      
+      if (typeof obj[key] === 'object') {
+        traverse(obj[key], currentPath);
+      }
     }
-  });
-  return randNum.join(DNA_DELIMITER);
-};
+  }
 
+  traverse(structure, []);
+  return count;
+}
+
+// For reference
 const createDnaOG = (_layers) => {
   let randNum = [];
   _layers.forEach((layer) => {
@@ -548,7 +496,7 @@ const createDnaOG = (_layers) => {
     // number between 0 - totalWeight
     let random = Math.floor(Math.random() * totalWeight);
     for (var i = 0; i < layer.elements.length; i++) {
-      // subtract the current weight from the random weight until we reach a sub zero value.
+      // Subtract the current weight from the random weight until we reach a sub zero value.
       random -= layer.elements[i].weight;
       if (random < 0) {
         return randNum.push(
@@ -563,7 +511,7 @@ const createDnaOG = (_layers) => {
 };
 
 const writeMetaData = (_data) => {
-  fs.writeFileSync(`${buildDir}/json/_metadata.json`, _data);
+  fs.writeFileSync(`${buildDir}/json/_imgData.json`, _data);
 };
 
 const sortedMetadata = () => {
@@ -583,6 +531,11 @@ const sortedMetadata = () => {
     if (!isNaN(filenames[i])) {
       let rawFile = fs.readFileSync(`${basePath}/build/json/${filenames[i]}.json`);
       let data = JSON.parse(rawFile);
+
+      for (let i = 0; i < data.attributes.length; i++) {
+        delete data.attributes[i].imgData;
+      }
+
       fs.writeFileSync(`${basePath}/build/json/${data.edition}.json`, JSON.stringify(data, null, 2));
       allMetadata.push(data);
     } 
@@ -618,43 +571,107 @@ function shuffle(array) {
   return array;
 }
 
+const scaleWeight = (layer, layerWeight) => {
+  const incompatibleTraits = Object.keys(incompatibilities);
+  const totalWeight = layer.elements.reduce((sum, element) => sum + element.weight, 0);
+
+  // console.log(incompatibleTraits);
+
+  if (exactWeight) {
+    if (totalWeight !== layerWeight) {
+      throw new Error(`Total weight in ${layer.name} (${totalWeight}) does not match amount specified in 
+      layerConfigurations (${layerWeight}). Please adjust weights in ${layer.name} to ensure the add up to ${layerWeight}.`);
+    }
+    /* Ricky, add logic to warn user if maxCount of trait exceeds their defined weight. Started above, 
+    but I don't want to adjust all the layer weights right now to test properly
+    */
+  } else {
+    let allCounts = new Object();
+    let maxCount = 0;
+
+    layer.elements.forEach((element) => {
+      const scaledWeight = Math.max(1, Math.round((element.weight / totalWeight) * layerWeight));
+      maxCount = countInstances(compatibility, element.name);
+
+      allCounts[element.name] = maxCount;
+
+      if (scaledWeight == 0) {
+        element.weight = 1;
+      } else if (scaledWeight > maxCount) {
+        element.weight = maxCount;
+      } else {
+        element.weight = scaledWeight;
+      }      
+    });
+
+    if (debugLogs) {
+      console.log(`Max counts for ${layer.name}:`);
+      console.log(allCounts);
+    }
+
+    // Validate and adjust weights to make sure they add up to layerWeight
+    let adjustedTotalWeight = layer.elements.reduce((sum, element) => sum + element.weight, 0);
+    let weightDifference = layerWeight - adjustedTotalWeight;
+
+    // While there's a difference, adjust weights proportionally
+    let isDifference = true;
+    let maxTries = 0;
+    while (isDifference) {
+      if (maxTries > uniqueDnaTorrance) {
+        throw new Error(`Weights could not be reconciled at current collection size (${collectionSize})`+
+        ` Please review your weights, and adjust.`);
+      }
+      layer.elements.forEach((element) => {
+        if (Math.abs(weightDifference) < 0.0001) {
+          isDifference = false;
+          return;
+        } else if (weightDifference < 0) { 
+          let newWeight = element.weight - 1;
+          // Ensure that if reducing weight, it doesn't go to zero.
+          if (newWeight > 0) {
+            element.weight--;
+            weightDifference++;
+          }
+        } else if (weightDifference > 0) {
+          let newWeight = element.weight + 1;
+          // Ensure that if increasing weight, it doesn't go past maxCount
+          if (newWeight <= maxCount) {
+            element.weight++;
+            weightDifference--;
+          }
+        } else {
+          throw new Error(`This error should only show if math has changed`);
+        }
+        // Now that all weights are finalized, update 'maxCount' for incompatibilities
+        if (incompatibleTraits.length > 0) {
+          // console.log(incompatibleTraits);
+          incompatibleTraits.forEach((incompatibility) => {
+            if (incompatibility == element.name) {
+              incompatibilities[incompatibility].maxCount = element.weight;
+            }
+          })
+        }
+      });
+      maxTries++;
+    }
+  }
+};
+
 const traitCount = (_layers) => {
   let count = new Object();
   _layers.forEach((layer) => {
+    let tempCount = {};
     layer.elements.forEach((element) => {
-      count[element.name] = element.weight;
+      tempCount[element.name] = element.weight;
     });
+    count[layer.name] = tempCount;
   });
   return count;
 };
 
-const allLayersOrders = () => {
-  let layerList = [];
-  for (let i = 0; i < layerConfigurations.length; i++) {
-    const layers = layersSetup(
-      layerConfigurations[i].layersOrder
-    );
-    
-    layers.forEach((layer) => {
-      return layerList.push(layer);
-    });
-  };
-  return layerList;
-}
-
-const allLayerSizes = () => {
-  let layerList = new Object();
-  for (let i = 0; i < layerConfigurations.length; i++) {
-    const layers = layersSetup(
-      layerConfigurations[i].layersOrder
-    );
-    
-    layers.forEach((layer) => {
-      layerList[layer.name] = layerConfigurations[i].growEditionSizeTo
-    });
-  };
-  return layerList;
-}
+  /* Ricky, assuming you don't entirely ditch the current variant system, 
+  at least make it consistent with othe options. should be ?setting=value
+  */
 
 const createVariation = (_variations) => {
   let setVariant = [];
@@ -679,10 +696,6 @@ const createVariation = (_variations) => {
 };
 
 const startCreating = async () => {
-  if (exactWeight) {
-    let allLayers = allLayersOrders();
-    allTraitsCount = traitCount(allLayers);
-  }
   let layerConfigIndex = 0;
   let editionCount = 1;
   let failedCount = 0;
@@ -704,6 +717,14 @@ const startCreating = async () => {
     const layers = layersSetup(
       layerConfigurations[layerConfigIndex].layersOrder
     );
+    layers.forEach((layer) => {
+      let layersOrderSize = layerConfigIndex == 0
+        ? layerConfigurations[layerConfigIndex].growEditionSizeTo
+        : layerConfigurations[layerConfigIndex].growEditionSizeTo - layerConfigurations[layerConfigIndex - 1].growEditionSizeTo;
+      scaleWeight(layer, layersOrderSize);
+    });
+    allTraitsCount = traitCount(layers);
+    // console.log(allTraitsCount);
     while (
       editionCount <= layerConfigurations[layerConfigIndex].growEditionSizeTo
     ) {
@@ -711,99 +732,58 @@ const startCreating = async () => {
       let currentEdition = editionCount - 1;
       let remainingInLayersOrder = layerConfigurations[layerConfigIndex].growEditionSizeTo - currentEdition;
       
-      if (exactWeight && namedWeight) {
-        throw new Error(`namedWeight and exactWeight can't be used together. Please mark one or both as false in config.js`);
-      }
-
       let newVariant = createVariation(layerVariations);
       let variant = newVariant.split(':').pop();
       let variantName = newVariant.split(':')[0];
 
-      let newDna = (exactWeight) ? createDnaExact(layers, remainingInLayersOrder, currentEdition, variant) : (namedWeight) ? createDnaNames(layers, variant) : createDna(layers, variant);
+      let newDna = createDnaExact(layers, remainingInLayersOrder, currentEdition, variant, layerConfigIndex) 
 
       let duplicatesAllowed = (allowDuplicates) ? true : isDnaUnique(dnaList, newDna);
 
-      // if (isDnaUnique(dnaList, newDna)) {
       if (duplicatesAllowed) {
         let results = constructLayerToDna(newDna, layers);
 
-        if (exactWeight) {
-          results.forEach((layer) => {
-            allTraitsCount[layer.selectedElement.name]--;
+        let variantMetadata = false
+        // Add metadata from layers
+        results.forEach((layer) => {
+          // Deduct selected layers from allTraitscount
+          allTraitsCount[layer.name][layer.selectedElement.name]--;
+
+          Object.keys(layer).forEach(key => {
+            if(layer.layerVariations !== undefined) {
+              variantMetadata = true;
+            }
           })
+
+          addAttributes(layer);
+        })
+
+        // Add any additional metadata
+        extraAttributes.forEach((attr) => {
+          attributesList.push(attr);
+        });
+        if (variantMetadata) {
+          attributesList.push({
+            trait_type: variantName,
+            value: variant,
+          });
+        }
+        if (enableStats) {
+          addStats();
+          statList.forEach((stat) => {
+            attributesList.push(stat);
+          });
+          statList = [];
         }
 
-        let loadedElements = [];
+        addMetadata(newDna, abstractedIndexes[0]+resumeNum);
+        saveMetaDataSingleFile(abstractedIndexes[0]+resumeNum);
 
-        results.forEach((layer) => {
-          loadedElements.push(loadLayerImg(layer));
-        });
-
-        await Promise.all(loadedElements).then((renderObjectArray) => {
-          debugLogs ? console.log("Clearing canvas") : null;
-          ctx.clearRect(0, 0, format.width, format.height);
-          if (gif.export) {
-            hashlipsGiffer = new HashlipsGiffer(
-              canvas,
-              ctx,
-              `${buildDir}/gifs/${abstractedIndexes[0]}.gif`,
-              gif.repeat,
-              gif.quality,
-              gif.delay
-            );
-            hashlipsGiffer.start();
-          }
-          if (background.generate) {
-            drawBackground();
-          }
-          let variantMetadata = false
-          renderObjectArray.forEach((renderObject, index) => {
-            Object.keys(renderObject.layer).forEach(key => {
-              if (renderObject.layer.layerVariations !== undefined) {
-                variantMetadata = true;
-              }
-            })
-            
-            drawElement(
-              renderObject,
-              index,
-              layerConfigurations[layerConfigIndex].layersOrder.length
-            );
-            if (gif.export) {
-              hashlipsGiffer.add();
-            }
-          });
-          extraAttributes.forEach((attr) => {
-            attributesList.push(attr);
-          });
-          if (variantMetadata) {
-            attributesList.push({
-              trait_type: variantName,
-              value: variant,
-            });
-          }
-          if (enableStats) {
-            addStats();
-            statList.forEach((stat) => {
-              attributesList.push(stat);
-            });
-            statList = [];
-          }
-          if (gif.export) {
-            hashlipsGiffer.stop();
-          }
-          debugLogs
-            ? console.log("Editions left to create: ", abstractedIndexes)
-            : null;
-          saveImage(abstractedIndexes[0]+resumeNum);
-          addMetadata(newDna, abstractedIndexes[0]+resumeNum);
-          saveMetaDataSingleFile(abstractedIndexes[0]+resumeNum);
-          console.log(
-            `Created edition: ${abstractedIndexes[0]+resumeNum}, with DNA: ${sha1(
-              newDna
-            )}`
-          );
-        });
+        console.log(
+          `Created edition: ${abstractedIndexes[0]+resumeNum}, with DNA: ${sha1(
+            newDna
+          )}`
+        );
         dnaList.add(filterDNAOptions(newDna));
         editionCount++;
         abstractedIndexes.shift();
@@ -820,8 +800,148 @@ const startCreating = async () => {
     }
     layerConfigIndex++;
   }
-  // writeMetaData(JSON.stringify(metadataList, null, 2));
+  // Ricky, create metadata cache file for imgData, and leave imgData out of regular metadata files
+  writeMetaData(JSON.stringify(metadataList, null, 2));
   sortedMetadata();
 };
 
-module.exports = { startCreating, buildSetup, getElements };
+const rarityBreakdown = () => {
+  let rawdata = fs.readFileSync(`${basePath}/build/json/_metadata.json`);
+  let data = JSON.parse(rawdata);
+  let editionSize = data.length;
+
+  let layers = [];
+  let layerNames = [];
+
+  // Get layers
+  data.forEach((item) => {
+    let attributes = item.attributes;
+    attributes.forEach((attribute) => {
+      let traitType = attribute.trait_type;
+      if(!layers.includes(traitType)) {
+        let newLayer = [{
+          trait: traitType,
+          count: 0,
+          occurrence: `%`,
+        }]
+        layers[traitType] = newLayer;
+        if(!layerNames.includes(traitType)) {
+          layerNames.push(traitType);
+        }
+      }
+    });
+  });
+
+  // Count each trait in each layer
+  data.forEach((item) => {
+    let attributes = item.attributes;
+    attributes.forEach((attribute) => {
+      let traitType = attribute.trait_type;
+      let value = attribute.value;
+      if(layers[traitType][0].trait == traitType) {
+        layers[traitType][0].trait = value;
+        layers[traitType][0].count = 1;
+        layers[traitType][0].occurrence = `${((1/editionSize) * 100).toFixed(2)}%`;
+      } else {
+        let layerExists = false;
+        for (let i = 0; i < layers[traitType].length; i++) {
+          if(layers[traitType][i].trait == value) {
+            layers[traitType][i].count++;
+            layers[traitType][i].occurrence = `${((layers[traitType][i].count/editionSize) * 100).toFixed(2)}%`;
+            layerExists = true;
+            break;
+          }
+        }
+        if(!layerExists) {
+          let newTrait = {
+            trait: value,
+            count: 1,
+            occurrence: `${((1/editionSize) * 100).toFixed(2)}%`,
+          }
+          layers[traitType].push(newTrait);
+        }
+      }
+    }); 
+  });
+
+  // Prep export to review data outside of terminal
+  let layerExport = [];
+
+  for (let i = 0; i < layerNames.length; i++) {
+    let layer = layerNames[i];
+    layerExport.push(layer);
+    layerExport.push(layers[layer]);
+  }
+
+  console.log(layerExport);
+
+}
+
+const formatTime = (totalSeconds) => {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = Math.floor(totalSeconds % 60);
+  return `${hours} hours, ${minutes} minutes, ${seconds} seconds`;
+};
+
+const delay = (ms) => {
+  return new Promise(resolve => setTimeout(resolve, ms));
+};
+
+const createPNG = async () => {
+  let rawdata = fs.readFileSync(`${basePath}/build/json/_imgData.json`);
+  let data = JSON.parse(rawdata);
+  let editionSize = data.length;
+
+  debugLogs ? console.log("Clearing canvas") : null;
+  ctx.clearRect(0, 0, format.width, format.height);
+
+  if (background.generate) {
+    drawBackground();
+  }
+
+  const startTime = process.hrtime();
+  let singleImageTimeMs = 0;
+
+  let i = 0;
+  for (const item of data) {
+    i++;
+    debugLogs ? console.log("Clearing canvas") : null;
+    ctx.clearRect(0, 0, format.width, format.height);
+
+    if (background.generate) {
+      drawBackground();
+    }
+
+    for (const attr of item.attributes) {
+      ctx.globalAlpha = attr.imgData.opacity;
+      ctx.globalCompositeOperation = attr.imgData.blend;
+
+      const img = await loadImage(attr.imgData.path);
+
+      ctx.drawImage(img, 0, 0, format.width, format.height);
+    }
+    
+    saveImage(item.edition);
+    console.log(`Generated photo for edition ${item.edition}`);
+
+    const elapsedTime = process.hrtime(startTime);
+    const elapsedMs = elapsedTime[0] * 1000 + elapsedTime[1] / 1e6;
+
+    // Calculate time for one image
+    if (i === 1) {
+      singleImageTimeMs = elapsedMs;
+      const totalTimeMs = singleImageTimeMs * editionSize;
+      const remainingTimeMs = totalTimeMs - singleImageTimeMs;
+
+      const remainingTimeSeconds = remainingTimeMs / 1000;
+      console.log()
+      console.log(`Estimated time for remaining ${editionSize - 1} images: ${formatTime(remainingTimeSeconds)}`);
+      
+      // Wait for 5 seconds before continuing
+      await delay(5000);
+    }
+  }
+};
+
+module.exports = { startCreating, buildSetup, getElements, rarityBreakdown, createPNG };

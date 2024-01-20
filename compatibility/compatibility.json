@@ -1,0 +1,22 @@
+{
+  "4 Trait 1": {
+    "parents": [
+      "3 Trait 1",
+      "3 Trait 3"
+    ],
+    "parentIndex": 2,
+    "childIndex": 3,
+    "layerIndex": 0,
+    "maxCount": 0
+  },
+  "8 Trait 1": {
+    "parents": [
+      "5 Trait 1",
+      "5 Trait 3"
+    ],
+    "parentIndex": 0,
+    "childIndex": 3,
+    "layerIndex": 1,
+    "maxCount": 0
+  }
+}

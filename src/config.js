@@ -2,20 +2,9 @@ const basePath = process.cwd();
 const { MODE } = require(`${basePath}/constants/blend_mode.js`);
 const { NETWORK } = require(`${basePath}/constants/network.js`);
 
-const collectionSize = 1000;
-const toCreateNow = 30;
-
-// If using scaleSize system, simply change growEditionSizeTo to use scaleSize(#) instead of #
-const scaleSize = (num) => {
-  if (collectionSize === toCreateNow) return num;
-  return Math.ceil((num / collectionSize) * toCreateNow);
-};
+const collectionSize = 9;
 
 // ********* Advanced weight options *********
-// Note: only one of these options can be marked true at once. 
-
-// Set this to true if you want to use named rarity instead of numbers. 
-const namedWeight = true;
 /* 
 * Set this to true if you want to use EXACT weights. 
 * Note that your weights must add up to the total number
@@ -23,7 +12,7 @@ const namedWeight = true;
 */
 const exactWeight = false;
 
-
+// Options: eth, sol
 const network = NETWORK.eth;
 
 // General metadata for Ethereum
@@ -32,6 +21,7 @@ const description = "Remember to replace this description";
 const baseUri = "ipfs://TESTING";
 
 const solanaMetadata = {
+  // If select Solana, the collection starts from 0 automatically
   symbol: "YC",
   seller_fee_basis_points: 1000, // Define how much % you want from secondary market sales 1000 = 10%
   external_url: "https://linktr.ee/datboi1337",
@@ -43,50 +33,63 @@ const solanaMetadata = {
   ],
 };
 
-// If you have selected Solana then the collection starts from 0 automatically
+// It's suggested to keep shuffle enabled to avoid the same traits generating for spans of images
+const shuffleLayerConfigurations = false;
+
 const layerConfigurations = [
+  // {
+  //   growEditionSizeTo: collectionSize/2,
+  //   layersOrder: [
+  //     // { name: "SkeletalBody" },
+  //     { name: "Head", options: {layerVariations: 'Color', displayName: 'test',} },
+  //     { name: "Back" },
+  //     { name: "Legs" },
+  //     { name: "Arms", options: {layerVariations: 'Color'} },
+  //     { name: "Mouth" },
+  //     { name: "Eyes" },
+  //   ],
+  // },
   {
     growEditionSizeTo: 5,
     layersOrder: [
-      // { name: "SkeletalBody" },
-      { name: "Head", options: {layerVariations: 'Color', displayName: 'test',} },
-      { name: "Back" },
-      { name: "Legs" },
-      { name: "Arms", options: {layerVariations: 'Color'} },
-      { name: "Mouth" },
-      { name: "Eyes" },
+      { name: "Layer1" },
+      { name: "Layer2" },
+      { name: "Layer3" },
+      { name: "Layer4" },
     ],
   },
   {
-    growEditionSizeTo: 15,
+    growEditionSizeTo: collectionSize,
     layersOrder: [
-      { name: "Body" },
-      { name: "Head"},
-      { name: "Back" },
-      { name: "Legs" },
-      { name: "Arms" },
-      { name: "Mouth" },
-      { name: "Eyes" },
-    ],
-  },
-  {
-
-    growEditionSizeTo: 30,
-    layersOrder: [
-      { name: "Body" },
-      { name: "Head" },
-      { name: "Back" },
-      { name: "Legs" },
-      { name: "Arms" },
-      { name: "Mouth" },
-      { name: "Eyes" },
+      { name: "Layer5" },
+      { name: "Layer6" },
+      { name: "Layer7" },
+      { name: "Layer8" },
     ],
   },
 ];
 
+const format = {
+  width: 512,
+  height: 512,
+  dpi: 72,
+  smoothing: false,
+};
+
+const extraMetadata = {};
+
+const extraAttributes = [];
+
+const rarityDelimiter = "#";
+
+const uniqueDnaTorrance = 10000;
+
 const enableStats = false;
 const statBlocks = [
-  // These are all examples with different display_types. Please refer to Opensea metadata standards for visual examples 
+  /* 
+  * These are all examples with different display_types. 
+  * Please refer to Opensea metadata standards for visual examples.
+  */
   {
     minValue: 1,
     maxValue: 50,
@@ -128,16 +131,7 @@ const statBlocks = [
   },
 ];
 
-const shuffleLayerConfigurations = false;
-
 const debugLogs = false;
-
-const format = {
-  width: 512,
-  height: 512,
-  dpi: 72,
-  smoothing: false,
-};
 
 const gif = {
   export: false,
@@ -146,8 +140,9 @@ const gif = {
   delay: 500,
 };
 
+// Currently disabled
 const text = {
-  only: false,
+  only: true,
   color: "#ffffff",
   size: 20,
   xGap: 40,
@@ -169,14 +164,6 @@ const background = {
   static: false,
   default: "#000000",
 };
-
-const extraMetadata = {};
-
-const extraAttributes = [];
-
-const rarityDelimiter = "#";
-
-const uniqueDnaTorrance = 10000;
 
 const preview = {
   thumbPerRow: 5,
@@ -201,13 +188,26 @@ const preview_gif = {
 * two decimal places. ie: 10.15% would be 1015
 * DO NOT change the rarity names unless you know what you're doing in main.js
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-const rarity_config = {
+/*
+* rarity_configOLD will soon be deprecated. 
+* It's still here now to ensure rarity script still works
+*/
+const rarity_configOLD = {
   Mythic: { ranks: [0, 100] }, //, fileName: 'Mythic.png' },
   Legendary: { ranks: [100, 600] }, //, fileName: 'Legendary.png' },
   Epic: { ranks: [600, 1500] }, //, fileName: 'Epic.png' },
   Rare: { ranks: [1500, 3100] }, //, fileName: 'Rare.png' },
   Uncommon: { ranks: [3100, 5600] }, //, fileName: 'Uncommon.png' },
   Common: { ranks: [5600, 10000] }, //, fileName: 'Common.png' },
+};
+
+const rarity_config = {
+  Mythic: 1,
+  Legendary: 6,
+  Epic: 15,
+  Rare: 31,
+  Uncommon: 56,
+  Common: 100,
 };
 
 const layerVariations = [
@@ -228,6 +228,13 @@ const layerVariations = [
     ],
   }
 ];
+
+// If using scaleSize system, simply change growEditionSizeTo to use scaleSize(#) instead of #
+const toCreateNow = 100;
+const scaleSize = (num) => {
+  if (collectionSize === toCreateNow) return num;
+  return Math.ceil((num / collectionSize) * toCreateNow);
+};
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
 * Do not use this unless 100% necessary and you understand the risk
@@ -266,9 +273,8 @@ module.exports = {
   preview_gif,
   resumeNum,
   rarity_config,
-  toCreateNow,
+  rarity_configOLD,
   collectionSize,
-  namedWeight,
   exactWeight,
   layerVariations,
   importOldDna,

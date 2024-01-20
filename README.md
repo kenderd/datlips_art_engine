@@ -1,8 +1,17 @@
-This is a fork of Hashlip's art engine. It is currently a *Work in Progress* as more features are planned to be added. 
+This is a fork of Hashlip's art engine with several additional features and quality of life changes
 
-🛠️🛠️ Please note that the README is barebones atm as I'm still working on feature implementation, but if you have any questions, please feel free to ask me in the various channels I can be reached. 
+🛠️🛠️ Please note that this documentation may not be fully up to date. Stable version can be found in latest release. 🛠️🛠️
 
 <br/>
+If you have any questions, please feel free to ask me in the various channels I can be reached (Discord will be the most consistent)
+<br/>
+<br/>
+
+## Latest major updates (January 2024) that are included, but not yet in a full release: 
+- Please review [General use](#general-use) section below. 
+- Incompatible traits can now be defined. At the moment, incompatibilities must be defined individually through the terminal prompts, however, bulk entry will be added soon. Upon running incompatibility wizard, you will be informed of the maximum number of generations taking incompatibilities into account **NOTE** incompatibility wizard must be run. Without it, generation will not start. 
+- All metadata is generated immediately so it can be verified, THEN image generation takes place after terminal interaction. This means a 10k collection's metadata can be generated in seconds rather than hours, so any issues that may be present can be rectified right away, rather than waking up in the morning to a failed generation.
+- Weight is now more concise. You can set your weights to named valued as found in rarity_config, or numbers in the same way as the default Hashlips engine without making any additional decalarations in config.js. exactWeight does still need to be defined in config.js if you're using that system. The new weight system also guarantees there will be no 0 generation of traits (assuming the collection size is large enough).
 <br/>
 
 ## Relevant links / socials,
@@ -11,6 +20,9 @@ This is a fork of Hashlip's art engine. It is currently a *Work in Progress* as 
 
 <br/>
 <br/>
+
+# Installation notes
+Use Node 18-20
 
 # Additional Features in this fork
 
@@ -63,38 +75,57 @@ This is a fork of Hashlip's art engine. It is currently a *Work in Progress* as 
 - [recreateAndSortMetadata](#recreateandsortmetadata)
 - [rarityFromMetadata](#rarityfrommetadata)
 
-### Notes
+### Planned upcoming features coming soon
 
-- Work in Progress
+- New Variant system that should be easier to use
+- GIF generation 👀
+- Cleanup of README for better readability
+- Adding bulk entry to incompatibility wizard
+- Adding terminal interaction for most metadata manipulation utilities to avoid direct script editing
+- Cleanup terminal output for rarity during generation
 
+# General use
+-import layer files
+-define collectionSize in config.js
+-define network in config.js
+-update layer information in config.js
+-run incompatibility wizard with `npm run compatibility`
+  -Follow prompts to define incompatible traits. 
+-run generation with `npm run generate`
 
 # Use named weights instead of numbers in filename
 This fork gives the option to use a simpler weight system by using common rarity names (Common, Uncommon, Rare, Epic, Legenedary, and Mythic) instead of numbers. Weight will be calculated based on named value.
 
 ## Named weight example
-This repository is set up to use named weights by default. The layers are already using named weights
-
-You can switch back to using numbered weights by setting `namedWeight` to false in config.js. 
+![namedVsNumbered](https://user-images.githubusercontent.com/92766571/179042357-3d045785-807e-48e5-b9bb-c789d146e905.png)
 
 ```js
-// Set this to true if you want to use named rarity instead of numbers. 
-const namedWeight = true;
+const rarity_config = {
+  Mythic: 1,
+  Legendary: 6,
+  Epic: 15,
+  Rare: 31,
+  Uncommon: 56,
+  Common: 100,
+};
 ```
-![namedVsNumbered](https://user-images.githubusercontent.com/92766571/179042357-3d045785-807e-48e5-b9bb-c789d146e905.png)
+You can view 'rarity_config' in config.js to understand the differences between rarities. Something marked 'Common' will appear 100x more than something marked 'Legendary'. **NOTE**: Even with such a difference between two traits, all traits will be generated at least once. 
 
 # Use exact weight instead of rng
 This fork gives the option to use define exact counts of traits rather than using weight to randomly determine counts of traits. 
 
 ## Exact weight example
-To use exact weight system, set exactWeight to true in config.js. When this option is enabled, the weight any given trait is set to will be the exact number of times that trait appears in the collection. ie: `trait#50.png` will appear 50 times throughout the collection exactly. <br/>
+To use exact weight system, set exactWeight to true in config.js. When this option is enabled, the weight of any given trait is set to will be the exact number of times that trait appears in the collection. ie: `trait#50.png` will appear exactly 50 times throughout the collection. <br/>
 
-**PLEASE NOTE**: exactWeight and namedWeight can not be used together at this time! 
+**PLEASE NOTE**: All weights in a given folder must add up to the collection size or layersOrder edition size! 
 
 ```js
 const exactWeight = true;
 ```
 
 # Layer variation system
+**NOTE**: This system may give mixed results. A revised layer variation system is coming soon! <br/>
+
 Use this option to assign a 'variation' to multiple layers. The most common use-case for this option would be ensuring certain traits are the same color or skin pattern. For any trait that has variations, put a placeholder in the normal layer's folder with the desired weight, then put each of it's variations into the layer's '-variant' folder named with the variant name instead of a weight.
 Define your variations in the layerVariations const in config.js. <br/>
 
@@ -241,7 +272,9 @@ const format = {
 # Utils
 
 ## cleanMetadata
-This utility gives the option to remove some commonly requested items. Set any to true to remove them from generated metadata. Original metadata is preserved, and clean metadata is saved to build_new/json
+This utility gives the option to remove some commonly requested items. Set any to true to remove them from generated metadata. Original metadata is preserved, and clean metadata is saved to build_new/json <br/>
+
+**NOTE**: These elements are used as keys in other utilities, so please be sure to backup your metadata before running this, and only run AFTER running any other metadata manipulation utility (rename, update URI, etc.).
 
 ```js
 let removeDna = true;
