@@ -87,11 +87,10 @@ Use Node 18-20
 # General use
 1) import layer files
 2) define collectionSize in config.js
-3) define network in config.js
-4) update layer information in config.js
-5) run incompatibility wizard with `npm run compatibility`
-6) Follow prompts to define incompatible traits. 
-7) run generation with `npm run generate`
+3) update layer information in config.js
+4) run incompatibility wizard with `npm run compatibility`
+5) Follow prompts to define incompatible traits. 
+6) run generation with `npm run generate`
 
 # Use named weights instead of numbers in filename
 This fork gives the option to use a simpler weight system by using common rarity names (Common, Uncommon, Rare, Epic, Legenedary, and Mythic) instead of numbers. Weight will be calculated based on named value.
