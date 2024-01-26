@@ -2,7 +2,7 @@ const basePath = process.cwd();
 const { MODE } = require(`${basePath}/constants/blend_mode.js`);
 const { NETWORK } = require(`${basePath}/constants/network.js`);
 
-const collectionSize = 9;
+const collectionSize = 500;
 
 // ********* Advanced weight options *********
 /* 
@@ -19,6 +19,10 @@ const network = NETWORK.eth;
 const namePrefix = "Your Collection";
 const description = "Remember to replace this description";
 const baseUri = "ipfs://TESTING";
+
+/*
+Add other metadata standards. Fix Solana and add SEI
+*/
 
 const solanaMetadata = {
   // If select Solana, the collection starts from 0 automatically
@@ -37,34 +41,20 @@ const solanaMetadata = {
 const shuffleLayerConfigurations = false;
 
 const layerConfigurations = [
-  // {
-  //   growEditionSizeTo: collectionSize/2,
-  //   layersOrder: [
-  //     // { name: "SkeletalBody" },
-  //     { name: "Head", options: {layerVariations: 'Color', displayName: 'test',} },
-  //     { name: "Back" },
-  //     { name: "Legs" },
-  //     { name: "Arms", options: {layerVariations: 'Color'} },
-  //     { name: "Mouth" },
-  //     { name: "Eyes" },
-  //   ],
-  // },
-  {
-    growEditionSizeTo: 5,
-    layersOrder: [
-      { name: "Layer1" },
-      { name: "Layer2" },
-      { name: "Layer3" },
-      { name: "Layer4" },
-    ],
-  },
+/* 
+Move name and description, and possibly baseUri to layerConfiguration, for cases where people need 
+to define them like that. Just have them default to the variables above. 
+*/
   {
     growEditionSizeTo: collectionSize,
     layersOrder: [
-      { name: "Layer5" },
-      { name: "Layer6" },
-      { name: "Layer7" },
-      { name: "Layer8" },
+      { name: "Arms" },
+      { name: "Back" },
+      { name: "Body" },
+      { name: "Eyes" },
+      { name: "Head" },
+      { name: "Legs" },
+      { name: "Mouth" },
     ],
   },
 ];
@@ -209,6 +199,11 @@ const rarity_config = {
   Uncommon: 56,
   Common: 100,
 };
+
+/* 
+Alright, this system sucks. You should just have a LAYER called variations. If people want to use the system.
+they populate that folder with whatever variants at whatever weights they'd like. 
+*/
 
 const layerVariations = [
   {

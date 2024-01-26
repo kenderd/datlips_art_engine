@@ -4,10 +4,11 @@ const path = require("path");
 const basePath = process.cwd();
 const { format, layerConfigurations } = require(`${basePath}/src/config.js`);
 const { Select } = require('enquirer');
-const { createCanvas, loadImage } = require("canvas");
+const cliProgress = require('cli-progress');
+// const { createCanvas, loadImage } = require("canvas");
 
-const canvas = createCanvas(format.width, format.height);
-const ctx = canvas.getContext("2d");
+// const canvas = createCanvas(format.width, format.height);
+// const ctx = canvas.getContext("2d");
 
 // Create compatibility directory if it doesn't already exist
 const dir = `${basePath}/compatibility`;
@@ -37,6 +38,8 @@ const askUserConfirmation = (question) => {
   });
 };
 
+let maxCombinations = 1;
+
 const layers = [];
 let compatibility = {};
 let nest = {}
@@ -47,9 +50,13 @@ const listCompatibility = async () => {
     const tempLayers = [];
 
     layersOrder.forEach((layer, layerIndex) => {
+
       tempLayers.push(layer.name);
       const filePath = `${basePath}/layers/${layer.name}`
       const files = fs.readdirSync(filePath);
+
+      let layercount = files.length;
+      maxCombinations *= layercount;
 
       const imageFiles = files.filter(file => {
         const isFile = fs.statSync(path.join(filePath, file)).isFile();
@@ -147,9 +154,82 @@ function deepCopy(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
 
-const checkCompatibility = async () => {
+const markIncompatible = async (_child, _incompatibleParent, _parentIndex, _childIndex, _layerIndex) => {
   parents = [];
+  // Get all paths for incompatible traits
+  if (_parentIndex === 0) {
+    const firstLayerObj = nest[_layerIndex];
+    getAllPaths(firstLayerObj, [_incompatibleParent], _incompatibleParent, _child, _parentIndex);
+  } else {
+    const root = Object.keys(nest[_layerIndex]);
+    for (let i = 0; i < root.length; i++) {
+      const currentLayerObj = nest[_layerIndex][root[i]];
+      getAllPaths(currentLayerObj, [root[i]], _incompatibleParent, _child, _parentIndex);
+    }
+  }
+
+  // Then filter them down to only full paths where both traits are present
+  const filteredIncompatibleTraits = incompatibleTraits.filter(path =>
+    path.includes(_incompatibleParent)
+  );
+
+  let incompatibilty = {
+    incompatibleParent: _incompatibleParent,
+    parents,
+    parentIndex: _parentIndex,
+    childIndex: _childIndex,
+    layerIndex: Number(_layerIndex),
+    maxCount: 0
+  }
+
+  // Log each incompatibility as it's own object for use in generation later
+  if (!incompatibilities[_child]) {
+    incompatibilities[_child] = incompatibilty;
+  } else {
+    const remainingParents = incompatibilities[_child].parents.filter(
+      element => incompatibilty.parents.includes(element)
+    );
+    if (remainingParents.length == 0) {
+      throw new Error(`No parent layers remaining for ${_child}, which would result in 0 generation of that trait.` +
+      ` Please review your layer folders and your previous selections, then try again. `)
+    }
+    incompatibilities[_child].parents = remainingParents
+  }
+
+  const removeCombination = filteredIncompatibleTraits.length;
+
+  maxCombinations -= removeCombination;
   
+  const bar1 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
+
+  bar1.start(removeCombination, 0);
+
+  // Delete each item at specified paths
+  for (let i = 0; i < filteredIncompatibleTraits.length; i++) {
+    bar1.update(i + 1);
+    const pathToDelete = filteredIncompatibleTraits[i];
+    let nestedObjectCopy = deepCopy(nest);
+    let currentObj = nestedObjectCopy[_layerIndex];
+  
+    for (const segment of pathToDelete) {
+      if (currentObj && currentObj.hasOwnProperty(segment) && Object.keys(currentObj[segment]).length !== 0) {
+        if(_child != segment) {
+          currentObj = currentObj[segment];
+        }
+      }
+    }
+
+    delete currentObj[_child];
+
+    nest = nestedObjectCopy
+  }
+
+  bar1.stop();
+
+  console.log(`${_incompatibleParent} marked incompatible with ${_child}`);
+}
+
+const checkCompatibility = async () => {
   const selectLayersOrder = new Select({
     name: 'layersOrder',
     message: 'Which layersOrder index contains the incompatibility (starting at 0)?',
@@ -194,73 +274,7 @@ const checkCompatibility = async () => {
 
   const secondTrait = await selectSecondTrait.run();
 
-  // Get all paths for incompatible traits
-  if (indexOfFirstLayer === 0) {
-    const firstLayerObj = nest[layersOrder];
-    getAllPaths(firstLayerObj, [firstTrait], firstTrait, secondTrait, indexOfFirstLayer);
-  } else {
-    const root = Object.keys(nest[layersOrder]);
-    for (let i = 0; i < root.length; i++) {
-      const currentLayerObj = nest[layersOrder][root[i]];
-      getAllPaths(currentLayerObj, [root[i]], firstTrait, secondTrait, indexOfFirstLayer);
-    }
-  }  
-
-  // Then filter them down to only full paths where both traits are present
-  const filteredIncompatibleTraits = incompatibleTraits.filter(path =>
-    path.includes(firstTrait)
-  );
-
-  let incompatibilty = {
-    parents,
-    parentIndex: indexOfFirstLayer,
-    childIndex: indexOfSecondLayer,
-    layerIndex: Number(layersOrder),
-    maxCount: 0
-  }
-
-  // Log each incompatibility as it's own object for use in generation later
-  if (!incompatibilities[secondTrait]) {
-    incompatibilities[secondTrait] = incompatibilty;
-  } else {
-    const remainingParents = incompatibilities[secondTrait].parents.filter(
-      element => incompatibilty.parents.includes(element)
-    );
-    if (remainingParents.length == 0) {
-      throw new Error(`No parent layers remaining for ${secondTrait}, which would result in 0 generation of that trait.` +
-      ` Please review your layer folders and your previous selections, then try again. `)
-    }
-    incompatibilities[secondTrait].parents = remainingParents
-  }
-
-  // Delete each item at specified paths
-  for (let i = 0; i < filteredIncompatibleTraits.length; i++) {
-    const pathToDelete = filteredIncompatibleTraits[i];
-    let nestedObjectCopy = deepCopy(nest);
-    let currentObj = nestedObjectCopy[layersOrder];
-  
-    for (const segment of pathToDelete) {
-      if (currentObj && currentObj.hasOwnProperty(segment) && Object.keys(currentObj[segment]).length !== 0) {
-        if(secondTrait != segment) {
-          currentObj = currentObj[segment];
-        }
-      }
-    }
-
-    delete currentObj[secondTrait];
-
-    nest = nestedObjectCopy
-  }
-
-  console.log(`${firstTrait} marked incompatible with ${secondTrait}`);
-
-  // Above works perfectly for defining individual incompatibilities when you know them. 
-  // Next, build out system(s) for bulk entry. This can be fairly simple:
-  // -define firstTrait[] and secondTrait[] as arrays (must match in length)
-  // -this will require you to split the checkCompatibility function to separate the user prompts
-  // from the trait removal. That way, you can simply iterate over the arrays and perform the same actions
-
-  // as well, one that shows each trait combination to verify individually (for when user doesn't know)
+  await markIncompatible(secondTrait, firstTrait, indexOfFirstLayer, indexOfSecondLayer, layersOrder);
 }
 
 function calculateMax(structure) {
@@ -284,41 +298,16 @@ function calculateMax(structure) {
   return count;
 }
 
-const runScript = async () => {
-  await listCompatibility();
-  await nestedStructure();
-
-  let answer = 'Y'
-
-  while (answer == 'Y') {
-    answer = await askUserConfirmation("Do you want to define an incompatibility?");
-
-    if (answer === 'Y') {
-      await checkCompatibility()
-    } else if (answer !== 'N') {
-      console.log("Please enter 'Y' or 'N'.");
-    }
-  }
-
-  // updateIncompatibilityCounts();
-  console.log(`Defined incompatibilities:`);
-  console.log(incompatibilities);
-
+const countAndSave = () => {
   console.log(`With the defined incompatibilites and available traits, `+
-    `a maximum of ${calculateMax(nest)} images can be generated`);
+    `a maximum of ${maxCombinations} images can be generated`);
 
   // Save compatibility objects as JSON
   const jsonOutput = JSON.stringify(incompatibilities, null, 2);
   const outputFile = path.join(basePath, 'compatibility/compatibility.json');
   fs.writeFileSync(outputFile, jsonOutput);
 
-  const njsonOutput = JSON.stringify(nest, null, 2);
-  const noutputFile = path.join(basePath, 'compatibility/nest.json');
-  fs.writeFileSync(noutputFile, njsonOutput);
-
   console.log(`Compatibility files created in ${basePath}/compatibility/`);
 }
 
-runScript().catch(err => {
-  console.error('An error occurred:', err);
-});
+module.exports = { listCompatibility, nestedStructure, markIncompatible, checkCompatibility, countAndSave, nest };

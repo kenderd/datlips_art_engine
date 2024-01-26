@@ -43,9 +43,11 @@ var dnaList = new Set();
 const DNA_DELIMITER = "-";
 const HashlipsGiffer = require(`${basePath}/modules/HashlipsGiffer.js`);
 const oldDna = `${basePath}/build_old/_oldDna.json`;
-const nest = `${basePath}/compatibility/nest.json`;
+// const nest = `${basePath}/compatibility/nest.json`;
 const incompatible = `${basePath}/compatibility/compatibility.json`
-let compatibility;
+const { nest } = require(`${basePath}/modules/isCompatible.js`);
+const cliProgress = require('cli-progress');
+let compatibility = nest;
 let incompatibilities;
 
 let hashlipsGiffer = null;
@@ -77,8 +79,8 @@ const buildSetup = () => {
       dnaList.add(item);
     });
   }
-  let rawNestData = fs.readFileSync(nest);
-  compatibility = JSON.parse(rawNestData);
+  // let rawNestData = fs.readFileSync(nest);
+  // compatibility = JSON.parse(rawNestData);
   let rawCompatibleData = fs.readFileSync(incompatible);
   incompatibilities = JSON.parse(rawCompatibleData);
 }
@@ -306,9 +308,15 @@ const constructLayerToDna = (_dna = "", _layers = []) => {
       (e) => e.id == cleanDna(_dna.split(DNA_DELIMITER)[index])
     );
 
+    /*
+    idk, I still fucking hate these errors. Please fully debug and figure out wtf they're even for
+    I know I wrote them, but I can't figure out why 
+    */
+
     if (_dna.search(selectedElement.name) < 0) {
-      throw new Error(`There is an issue in your ${layer.name} folder. Please review weights & file types,`+
-      ` then try again. NOTE: All traits MUST contain a weight!`);
+      throw new Error(`Something went wrong. There may be an issue in your ${layer.name} folder,`+
+      ` but this issue hasn't been fully debugged yet. Please try again, and if you continue getting` +
+      ` this error, review weights & file types. NOTE: All traits MUST contain a weight!`);
     }
 
     return {
@@ -374,8 +382,6 @@ const createDnaExact = (_layers, _remainingInLayersOrder, _currentEdition, _vari
   let nestLookup = []
 
   const incompatibleTraits = Object.keys(incompatibilities);
-
-  // console.log(incompatibilities);
 
   let restrictedGeneration = false;
 
@@ -450,6 +456,7 @@ const createDnaExact = (_layers, _remainingInLayersOrder, _currentEdition, _vari
       if (random < 0) {
         // Append new layer information to nestLookup
         nestLookup.push(elements[i].name);
+        debugLogs ? console.log(`${elements[i].name} chosen for ${layer.name}`) : null;
         return randNum.push(
           `${elements[i].id}:${elements[i].name}& ` +
           `${layerVariations ? _variant : ""}` +
@@ -468,14 +475,14 @@ function countInstances(structure, targetTrait) {
     for (const key in obj) {
       const currentPath = path.concat(key);
       
-      if (currentPath.includes(targetTrait)) {
+      if (currentPath.includes(targetTrait) && count <= collectionSize) {
         if (typeof obj[key] === 'object' && Object.keys(obj[key]).length === 0) {
           count++;
         }
       }
       
       
-      if (typeof obj[key] === 'object') {
+      if (typeof obj[key] === 'object' && count <= collectionSize) {
         traverse(obj[key], currentPath);
       }
     }
@@ -572,20 +579,20 @@ function shuffle(array) {
 }
 
 const scaleWeight = (layer, layerWeight) => {
-  const incompatibleTraits = Object.keys(incompatibilities);
   const totalWeight = layer.elements.reduce((sum, element) => sum + element.weight, 0);
 
-  // console.log(incompatibleTraits);
+  if (layer.elements.length > layerWeight) {
+    throw new Error(
+      `Your ${layer.name} layer contains more traits than your current growEditionSizeTo (${layerWeight})!`+
+      ` To avoid 0 count traits, you must set growEditionSizeTo to a minimum of ${layer.elements.length}.`);
+  }
 
-  if (exactWeight) {
-    if (totalWeight !== layerWeight) {
+  if (totalWeight !== layerWeight) {
+    if (exactWeight) {
       throw new Error(`Total weight in ${layer.name} (${totalWeight}) does not match amount specified in 
       layerConfigurations (${layerWeight}). Please adjust weights in ${layer.name} to ensure the add up to ${layerWeight}.`);
     }
-    /* Ricky, add logic to warn user if maxCount of trait exceeds their defined weight. Started above, 
-    but I don't want to adjust all the layer weights right now to test properly
-    */
-  } else {
+
     let allCounts = new Object();
     let maxCount = 0;
 
@@ -642,22 +649,24 @@ const scaleWeight = (layer, layerWeight) => {
         } else {
           throw new Error(`This error should only show if math has changed`);
         }
-        // Now that all weights are finalized, update 'maxCount' for incompatibilities
-        if (incompatibleTraits.length > 0) {
-          // console.log(incompatibleTraits);
-          incompatibleTraits.forEach((incompatibility) => {
-            if (incompatibility == element.name) {
-              incompatibilities[incompatibility].maxCount = element.weight;
-            }
-          })
-        }
       });
       maxTries++;
     }
+  } else if (exactWeight) {
+    layer.elements.forEach((element) =>{
+      maxCount = countInstances(compatibility, element.name);
+
+      if (element.weight > maxCount) {
+        throw new Error(`Your ${element.name} trait's weight (${element.weight}) exceeds the maximum it`+
+          `can be generated with given incompatibilities and collection size. Please adjust`+
+          ` ${element.name}'s weight to a maximum of ${maxCount}, and adjust other weights accordingly.`);
+      }
+    })
   }
 };
 
 const traitCount = (_layers) => {
+  const incompatibleTraits = Object.keys(incompatibilities);
   let count = new Object();
   _layers.forEach((layer) => {
     let tempCount = {};
@@ -666,6 +675,17 @@ const traitCount = (_layers) => {
     });
     count[layer.name] = tempCount;
   });
+  
+  // Now that all weights are finalized, update 'maxCount' for incompatibilities
+  const countArr = Object.keys(count);
+  if (incompatibleTraits.length > 0) {
+    incompatibleTraits.forEach((incompatibility) => {
+
+      let max = count[countArr[incompatibilities[incompatibility].childIndex]][incompatibility];
+
+      incompatibilities[incompatibility].maxCount = max;
+    })
+  }
   return count;
 };
 
@@ -724,7 +744,8 @@ const startCreating = async () => {
       scaleWeight(layer, layersOrderSize);
     });
     allTraitsCount = traitCount(layers);
-    // console.log(allTraitsCount);
+    console.log(allTraitsCount)
+    debugLogs ? console.log(allTraitsCount) : null;
     while (
       editionCount <= layerConfigurations[layerConfigIndex].growEditionSizeTo
     ) {
@@ -741,11 +762,13 @@ const startCreating = async () => {
       let duplicatesAllowed = (allowDuplicates) ? true : isDnaUnique(dnaList, newDna);
 
       if (duplicatesAllowed) {
+        
         let results = constructLayerToDna(newDna, layers);
-
+        // console.log(results.selectedElement);
         let variantMetadata = false
         // Add metadata from layers
         results.forEach((layer) => {
+          // console.log(layer.selectedElement);
           // Deduct selected layers from allTraitscount
           allTraitsCount[layer.name][layer.selectedElement.name]--;
 

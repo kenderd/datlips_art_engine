@@ -9,7 +9,7 @@ If you have any questions, please feel free to ask me in the various channels I 
 
 ## Latest major updates (January 2024) that are included, but not yet in a full release: 
 - Please review [General use](#general-use) section below. 
-- Incompatible traits can now be defined. At the moment, incompatibilities must be defined individually through the terminal prompts, however, bulk entry will be added soon. Upon running incompatibility wizard, you will be informed of the maximum number of generations taking incompatibilities into account **NOTE** incompatibility wizard must be run. Without it, generation will not start. 
+- Incompatible traits can now be defined. At the moment, incompatibilities must be defined individually through the terminal prompts, however, bulk entry will be added soon. Upon running generation, you will be prompted for incompatibilities and informed of the maximum number of generations taking incompatibilities into account 
 - All metadata is generated immediately so it can be verified, THEN image generation takes place after terminal interaction. This means a 10k collection's metadata can be generated in seconds rather than hours, so any issues that may be present can be rectified right away, rather than waking up in the morning to a failed generation.
 - Weight is now more concise. You can set your weights to named valued as found in rarity_config, or numbers in the same way as the default Hashlips engine without making any additional decalarations in config.js. exactWeight does still need to be defined in config.js if you're using that system. The new weight system also guarantees there will be no 0 generation of traits (assuming the collection size is large enough).
 <br/>
@@ -89,9 +89,8 @@ Use Node 18-20
 -define collectionSize in config.js
 -define network in config.js
 -update layer information in config.js
--run incompatibility wizard with `npm run compatibility`
-  -Follow prompts to define incompatible traits. 
 -run generation with `npm run generate`
+  -Follow prompts, method has changed!
 
 # Use named weights instead of numbers in filename
 This fork gives the option to use a simpler weight system by using common rarity names (Common, Uncommon, Rare, Epic, Legenedary, and Mythic) instead of numbers. Weight will be calculated based on named value.
