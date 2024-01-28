@@ -51,8 +51,12 @@ build/Release
 
 build/images/*
 build/json/*
+build/json-drop/*
 build_new/images/*
 build_new/json/*
+build_new/json-drop/*
+compatibility/*
+rarity/json/*
 dist/
 node_modules/
 jspm_packages/

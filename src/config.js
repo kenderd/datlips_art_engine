@@ -2,7 +2,7 @@ const basePath = process.cwd();
 const { MODE } = require(`${basePath}/constants/blend_mode.js`);
 const { NETWORK } = require(`${basePath}/constants/network.js`);
 
-const collectionSize = 500;
+const collectionSize = 20;
 
 // ********* Advanced weight options *********
 /* 
@@ -12,21 +12,16 @@ const collectionSize = 500;
 */
 const exactWeight = false;
 
-// Options: eth, sol
+// Options: eth, sol, sei
 const network = NETWORK.eth;
 
-// General metadata for Ethereum
-const namePrefix = "Your Collection";
+// General metadata
+const collectionName = "Your Collection";
+const symbol = "YC";
 const description = "Remember to replace this description";
 const baseUri = "ipfs://TESTING";
 
-/*
-Add other metadata standards. Fix Solana and add SEI
-*/
-
 const solanaMetadata = {
-  // If select Solana, the collection starts from 0 automatically
-  symbol: "YC",
   seller_fee_basis_points: 1000, // Define how much % you want from secondary market sales 1000 = 10%
   external_url: "https://linktr.ee/datboi1337",
   creators: [
@@ -35,18 +30,20 @@ const solanaMetadata = {
       share: 100,
     },
   ],
+  collection: {
+    name: "Your Collection",
+    family: "Your Collection Family",
+  }
 };
 
 // It's suggested to keep shuffle enabled to avoid the same traits generating for spans of images
 const shuffleLayerConfigurations = false;
 
 const layerConfigurations = [
-/* 
-Move name and description, and possibly baseUri to layerConfiguration, for cases where people need 
-to define them like that. Just have them default to the variables above. 
-*/
   {
     growEditionSizeTo: collectionSize,
+    namePrefix: collectionName,
+    description: description,
     layersOrder: [
       { name: "Arms" },
       { name: "Back" },
@@ -172,25 +169,10 @@ const preview_gif = {
 };
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
-* Rarity distribution can be adjusted
-* Keep range [0 - 10,000]
-* Because weight is up to 10,000, percentages can determined up to 
-* two decimal places. ie: 10.15% would be 1015
-* DO NOT change the rarity names unless you know what you're doing in main.js
+* Rarity distribution can be adjusted. The main thing to keep in mind
+* when editing is the rarities relationship to eachother. 
+* Common vs Mythic is 100:1 in the default state, for example.
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/*
-* rarity_configOLD will soon be deprecated. 
-* It's still here now to ensure rarity script still works
-*/
-const rarity_configOLD = {
-  Mythic: { ranks: [0, 100] }, //, fileName: 'Mythic.png' },
-  Legendary: { ranks: [100, 600] }, //, fileName: 'Legendary.png' },
-  Epic: { ranks: [600, 1500] }, //, fileName: 'Epic.png' },
-  Rare: { ranks: [1500, 3100] }, //, fileName: 'Rare.png' },
-  Uncommon: { ranks: [3100, 5600] }, //, fileName: 'Uncommon.png' },
-  Common: { ranks: [5600, 10000] }, //, fileName: 'Common.png' },
-};
-
 const rarity_config = {
   Mythic: 1,
   Legendary: 6,
@@ -261,14 +243,14 @@ module.exports = {
   extraMetadata,
   pixelFormat,
   text,
-  namePrefix,
+  collectionName,
+  symbol,
   network,
   solanaMetadata,
   gif,
   preview_gif,
   resumeNum,
   rarity_config,
-  rarity_configOLD,
   collectionSize,
   exactWeight,
   layerVariations,

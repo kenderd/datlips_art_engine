@@ -17,7 +17,8 @@ const {
   debugLogs,
   extraMetadata,
   text,
-  namePrefix,
+  collectionName,
+  symbol,
   network,
   solanaMetadata,
   SEIMetadata,
@@ -57,11 +58,13 @@ const buildSetup = () => {
   if (!fs.existsSync(buildDir)) {
     fs.mkdirSync(buildDir);
     fs.mkdirSync(`${buildDir}/json`);
+    fs.mkdirSync(`${buildDir}/json-drop`);
     fs.mkdirSync(`${buildDir}/images`);
   } else {
     fs.rmSync(buildDir, { recursive: true } );
     fs.mkdirSync(buildDir);
     fs.mkdirSync(`${buildDir}/json`);
+    fs.mkdirSync(`${buildDir}/json-drop`);
     fs.mkdirSync(`${buildDir}/images`);
   }
   if (gif.export) {
@@ -199,33 +202,32 @@ const drawBackground = () => {
   ctx.fillRect(0, 0, format.width, format.height);
 };
 
-const addMetadata = (_dna, _edition) => {
-  let dateTime = Date.now();
+// const addMetadata = (_dna, _edition) => {
+const addMetadata = (_dna, _name, _desc, _edition) => {
   let tempMetadata = {
-    name: `${namePrefix} #${_edition}`,
-    description: description,
+    name: `${_name} #${_edition}`,
+    description: _desc,
     image: `${baseUri}/${_edition}.png`,
-    dna: sha1(_dna),
+    animation_url: ``,
     edition: _edition,
-    date: dateTime,
     ...extraMetadata,
     attributes: attributesList,
+    dna: sha1(_dna),
     compiler: "datboi1337 Art Engine (Hashlips fork)",
   };
   if (network == NETWORK.sol) {
     tempMetadata = {
-      //Added metadata for solana
       name: tempMetadata.name,
-      symbol: solanaMetadata.symbol,
+      symbol: symbol,
       description: tempMetadata.description,
-      //Added metadata for solana
       seller_fee_basis_points: solanaMetadata.seller_fee_basis_points,
       image: `${_edition}.png`,
-      //Added metadata for solana
+      animation_url: ``,
       external_url: solanaMetadata.external_url,
       edition: _edition,
       ...extraMetadata,
       attributes: tempMetadata.attributes,
+      collection: solanaMetadata.collection,
       properties: {
         files: [
           {
@@ -237,6 +239,20 @@ const addMetadata = (_dna, _edition) => {
         creators: solanaMetadata.creators,
       },
     };
+  } else if (network == NETWORK.sei) {
+    tempMetadata = {
+      name: `${_name} #${_edition}`,
+      symbol: symbol,
+      collection: collectionName,
+      description: _desc,
+      image: `${_edition}.png`,
+      animation_url: ``,
+      edition: _edition,
+      ...extraMetadata,
+      attributes: attributesList,
+      dna: sha1(_dna),
+      compiler: "datboi1337 Art Engine (Hashlips fork)",
+    }
   }
   metadataList.push(tempMetadata);
   attributesList = [];
@@ -535,15 +551,17 @@ const sortedMetadata = () => {
   });
 
   for (let i = 0; i < filenames.length; i++) {
-    if (!isNaN(filenames[i])) {
+    if (!isNaN(filenames[i]) && filenames[i] != -1) {
       let rawFile = fs.readFileSync(`${basePath}/build/json/${filenames[i]}.json`);
       let data = JSON.parse(rawFile);
-
+      
       for (let i = 0; i < data.attributes.length; i++) {
         delete data.attributes[i].imgData;
       }
 
       fs.writeFileSync(`${basePath}/build/json/${data.edition}.json`, JSON.stringify(data, null, 2));
+      // Save copy without file extension for opensea drop contracts
+      fs.writeFileSync(`${basePath}/build/json-drop/${data.edition}`, JSON.stringify(data, null, 2));
       allMetadata.push(data);
     } 
   }
@@ -720,8 +738,9 @@ const startCreating = async () => {
   let editionCount = 1;
   let failedCount = 0;
   let abstractedIndexes = [];
+  const startNum = network == NETWORK.sol || network == NETWORK.sei ? 0 : 1;
   for (
-    let i = network == NETWORK.sol ? 0 : 1;
+    let i = startNum;
     i <= layerConfigurations[layerConfigurations.length - 1].growEditionSizeTo;
     i++
   ) {
@@ -799,7 +818,11 @@ const startCreating = async () => {
           statList = [];
         }
 
-        addMetadata(newDna, abstractedIndexes[0]+resumeNum);
+        let name = layerConfigurations[layerConfigIndex].namePrefix;
+        let desc = layerConfigurations[layerConfigIndex].description;
+
+        addMetadata(newDna, name, desc, abstractedIndexes[0]+resumeNum);
+        // addMetadata(newDna, abstractedIndexes[0]+resumeNum);
         saveMetaDataSingleFile(abstractedIndexes[0]+resumeNum);
 
         console.log(
@@ -823,7 +846,14 @@ const startCreating = async () => {
     }
     layerConfigIndex++;
   }
-  // Ricky, create metadata cache file for imgData, and leave imgData out of regular metadata files
+  if (network == NETWORK.sei) {
+    let collectionMetadata = {
+      name: collectionName,
+      image: "-1.png",
+    }
+    fs.writeFileSync(`${basePath}/build/json/-1.json`, JSON.stringify(collectionMetadata, null, 2));
+    fs.writeFileSync(`${basePath}/build/json-drop/-1`, JSON.stringify(collectionMetadata, null, 2));
+  }
   writeMetaData(JSON.stringify(metadataList, null, 2));
   sortedMetadata();
 };
@@ -839,52 +869,56 @@ const rarityBreakdown = () => {
   // Get layers
   data.forEach((item) => {
     let attributes = item.attributes;
-    attributes.forEach((attribute) => {
-      let traitType = attribute.trait_type;
-      if(!layers.includes(traitType)) {
-        let newLayer = [{
-          trait: traitType,
-          count: 0,
-          occurrence: `%`,
-        }]
-        layers[traitType] = newLayer;
-        if(!layerNames.includes(traitType)) {
-          layerNames.push(traitType);
+    if (attributes) {
+      attributes.forEach((attribute) => {
+        let traitType = attribute.trait_type;
+        if(!layers.includes(traitType)) {
+          let newLayer = [{
+            trait: traitType,
+            count: 0,
+            occurrence: `%`,
+          }]
+          layers[traitType] = newLayer;
+          if(!layerNames.includes(traitType)) {
+            layerNames.push(traitType);
+          }
         }
-      }
-    });
+      });
+    }
   });
 
   // Count each trait in each layer
   data.forEach((item) => {
     let attributes = item.attributes;
-    attributes.forEach((attribute) => {
-      let traitType = attribute.trait_type;
-      let value = attribute.value;
-      if(layers[traitType][0].trait == traitType) {
-        layers[traitType][0].trait = value;
-        layers[traitType][0].count = 1;
-        layers[traitType][0].occurrence = `${((1/editionSize) * 100).toFixed(2)}%`;
-      } else {
-        let layerExists = false;
-        for (let i = 0; i < layers[traitType].length; i++) {
-          if(layers[traitType][i].trait == value) {
-            layers[traitType][i].count++;
-            layers[traitType][i].occurrence = `${((layers[traitType][i].count/editionSize) * 100).toFixed(2)}%`;
-            layerExists = true;
-            break;
+    if (attributes) {
+      attributes.forEach((attribute) => {
+        let traitType = attribute.trait_type;
+        let value = attribute.value;
+        if(layers[traitType][0].trait == traitType) {
+          layers[traitType][0].trait = value;
+          layers[traitType][0].count = 1;
+          layers[traitType][0].occurrence = `${((1/editionSize) * 100).toFixed(2)}%`;
+        } else {
+          let layerExists = false;
+          for (let i = 0; i < layers[traitType].length; i++) {
+            if(layers[traitType][i].trait == value) {
+              layers[traitType][i].count++;
+              layers[traitType][i].occurrence = `${((layers[traitType][i].count/editionSize) * 100).toFixed(2)}%`;
+              layerExists = true;
+              break;
+            }
+          }
+          if(!layerExists) {
+            let newTrait = {
+              trait: value,
+              count: 1,
+              occurrence: `${((1/editionSize) * 100).toFixed(2)}%`,
+            }
+            layers[traitType].push(newTrait);
           }
         }
-        if(!layerExists) {
-          let newTrait = {
-            trait: value,
-            count: 1,
-            occurrence: `${((1/editionSize) * 100).toFixed(2)}%`,
-          }
-          layers[traitType].push(newTrait);
-        }
-      }
-    }); 
+      }); 
+    }
   });
 
   // Prep export to review data outside of terminal
@@ -943,6 +977,12 @@ const createPNG = async () => {
       const img = await loadImage(attr.imgData.path);
 
       ctx.drawImage(img, 0, 0, format.width, format.height);
+    }
+
+    if (i == 1) {
+      if (network == NETWORK.sei) {
+        saveImage(-1);
+      }
     }
     
     saveImage(item.edition);
