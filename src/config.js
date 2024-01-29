@@ -2,7 +2,7 @@ const basePath = process.cwd();
 const { MODE } = require(`${basePath}/constants/blend_mode.js`);
 const { NETWORK } = require(`${basePath}/constants/network.js`);
 
-const collectionSize = 20;
+const collectionSize = 30;
 
 // ********* Advanced weight options *********
 /* 
@@ -13,6 +13,7 @@ const collectionSize = 20;
 const exactWeight = false;
 
 // Options: eth, sol, sei
+// NOTE: using 'eth' will generate metadata compatible with most EVM chains
 const network = NETWORK.eth;
 
 // General metadata
@@ -37,20 +38,33 @@ const solanaMetadata = {
 };
 
 // It's suggested to keep shuffle enabled to avoid the same traits generating for spans of images
-const shuffleLayerConfigurations = false;
+const shuffleLayerConfigurations = true;
 
 const layerConfigurations = [
   {
-    growEditionSizeTo: collectionSize,
+    growEditionSizeTo: collectionSize/2,
     namePrefix: collectionName,
     description: description,
     layersOrder: [
+      { name: "Variant", options: { displayName: "Color" } },
       { name: "Arms" },
       { name: "Back" },
       { name: "Body" },
       { name: "Eyes" },
       { name: "Head" },
       { name: "Legs" },
+      { name: "Mouth" },
+    ],
+  },
+  {
+    growEditionSizeTo: collectionSize,
+    namePrefix: 'Alternate Name',
+    description: 'Alternate Description for this set of tokens',
+    layersOrder: [
+      { name: "Arms" },
+      { name: "Back" },
+      { name: "Body" },
+      { name: "Head" },
       { name: "Mouth" },
     ],
   },
@@ -182,37 +196,6 @@ const rarity_config = {
   Common: 100,
 };
 
-/* 
-Alright, this system sucks. You should just have a LAYER called variations. If people want to use the system.
-they populate that folder with whatever variants at whatever weights they'd like. 
-*/
-
-const layerVariations = [
-  {
-    variationCount: 1,
-    name: 'Color',
-    variations: [
-      'Blue',
-      'Green',
-      'Purple',
-      'Red',
-    ],
-    Weight: [
-      15,
-      25,
-      25,
-      35,
-    ],
-  }
-];
-
-// If using scaleSize system, simply change growEditionSizeTo to use scaleSize(#) instead of #
-const toCreateNow = 100;
-const scaleSize = (num) => {
-  if (collectionSize === toCreateNow) return num;
-  return Math.ceil((num / collectionSize) * toCreateNow);
-};
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
 * Do not use this unless 100% necessary and you understand the risk
 * Generating collection in stages leads to potential duplicates. 
@@ -253,7 +236,6 @@ module.exports = {
   rarity_config,
   collectionSize,
   exactWeight,
-  layerVariations,
   importOldDna,
   allowDuplicates,
   enableStats,

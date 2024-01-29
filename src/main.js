@@ -27,7 +27,6 @@ const {
   rarity_config,
   collectionSize,
   exactWeight,
-  layerVariations,
   importOldDna,
   allowDuplicates,
   enableStats,
@@ -172,10 +171,6 @@ const layersSetup = (layersOrder) => {
       layerObj.options?.["bypassDNA"] !== undefined
         ? layerObj.options?.["bypassDNA"]
         : false,
-    layerVariations: 
-      layerObj.options?.['layerVariations'] !== undefined
-        ? layerObj.options?.['layerVariations']
-        : undefined,
     ogName: layerObj.name,
     
   }));
@@ -312,7 +307,46 @@ const drawElement = (_renderObject, _index, _layersLen) => {
   addAttributes(_renderObject);
 };
 
+const checkVariant = (_variant, _traitObj) => {
+  let tempObj = {..._traitObj};
+
+  // Clean layer path
+  let layerPath = tempObj.path.replace(`${tempObj.filename}`, '');
+
+  // Filter for variant folders
+  let variantFolders = fs
+    .readdirSync(`${layerPath}`)
+    .filter((item) => {
+      const fullPath = layerPath + item;
+      return fs.statSync(fullPath).isDirectory() && !/(^|\/)\.[^\/\.]/g.test(item);
+    });
+  
+  // Pull variant trait if it exists, do nothing if it doesn't
+  if (variantFolders.length > 0) {
+    variantFolders.forEach((folder) => {
+      if (folder == _variant) {
+        let variantTraits = fs.readdirSync(`${layerPath}${_variant}`);
+        let cleanTraits = variantTraits.map((file) => cleanName(file));
+        cleanTraits.forEach((variant, index) => {
+          if (variant == tempObj.name) {
+            let variantPath = `${layerPath}${_variant}/${variantTraits[index]}`;
+            let variantExists = fs.existsSync(variantPath);
+            if (variantExists) {
+              tempObj.path = variantPath;
+            } else {
+              return;
+            }
+          }
+        });
+      }
+    });
+  }
+
+  return tempObj;
+}
+
 const constructLayerToDna = (_dna = "", _layers = []) => {
+  let variant = '';
   let mappedDnaToLayers = _layers.map((layer, index) => {
 
     if (_dna.split(DNA_DELIMITER)[index] == undefined) {
@@ -320,9 +354,17 @@ const constructLayerToDna = (_dna = "", _layers = []) => {
       ` but this issue hasn't been fully debugged yet. Please try again, and if you continue getting` +
       ` this error, review weights & file types. NOTE: All traits MUST contain a weight!`);
     }
+
     let selectedElement = layer.elements.find(
       (e) => e.id == cleanDna(_dna.split(DNA_DELIMITER)[index])
     );
+
+    if (index == 0 && selectedElement.path.includes("Variant")) {
+      variant = selectedElement.name;
+    }
+
+    // Update selectedElement with variant paths for imgData
+    selectedElement = checkVariant(variant, { ...selectedElement });
 
     /*
     idk, I still fucking hate these errors. Please fully debug and figure out wtf they're even for
@@ -340,8 +382,6 @@ const constructLayerToDna = (_dna = "", _layers = []) => {
       blend: layer.blend,
       opacity: layer.opacity,
       selectedElement: selectedElement,
-      layerVariations: layer.layerVariations,
-      variant: layer.layerVariations != undefined ? (_dna.split('&').pop()).split(DNA_DELIMITER).shift() : '',
       ogName: layer.ogName,
     };
   });
@@ -393,7 +433,7 @@ const isDnaUnique = (_DnaList = new Set(), _dna = "") => {
   return !_DnaList.has(_filteredDNA);
 };
 
-const createDnaExact = (_layers, _remainingInLayersOrder, _currentEdition, _variant, layerConfigIndex) => {
+const createDnaExact = (_layers, _remainingInLayersOrder, _currentEdition, layerConfigIndex) => {
   let randNum = [];
   let nestLookup = []
 
@@ -418,11 +458,8 @@ const createDnaExact = (_layers, _remainingInLayersOrder, _currentEdition, _vari
           console.log(`All ${compatibleChild} distributed`);
           delete incompatibilities[incompatibility];
         }
-
       }
-
-
-    })
+    });
   }
 
   // let layerSizes = allLayerSizes();
@@ -474,8 +511,7 @@ const createDnaExact = (_layers, _remainingInLayersOrder, _currentEdition, _vari
         nestLookup.push(elements[i].name);
         debugLogs ? console.log(`${elements[i].name} chosen for ${layer.name}`) : null;
         return randNum.push(
-          `${elements[i].id}:${elements[i].name}& ` +
-          `${layerVariations ? _variant : ""}` +
+          `${elements[i].id}:${elements[i].name}` +
           `${layer.bypassDNA ? "?bypassDNA=true" : ""}`
         );
       }
@@ -707,32 +743,6 @@ const traitCount = (_layers) => {
   return count;
 };
 
-  /* Ricky, assuming you don't entirely ditch the current variant system, 
-  at least make it consistent with othe options. should be ?setting=value
-  */
-
-const createVariation = (_variations) => {
-  let setVariant = [];
-  _variations.forEach((variant) => {
-    var totalWeight = 0;
-    variant.Weight.forEach((Weight) => {
-      totalWeight += Weight;
-    });
-    // number between 0 - totalWeight
-    let random = Math.floor(Math.random() * totalWeight);
-    for (var i = 0; i < variant.Weight.length; i++) {
-      // subtract the current weight from the random weight until we reach a sub zero value.
-      random -= variant.Weight[i];
-      if (random < 0) {
-        return setVariant.push(
-          `${variant.name}:${variant.variations[i]}`
-        );
-      }
-    }
-  });
-  return setVariant.join(DNA_DELIMITER);
-};
-
 const startCreating = async () => {
   let layerConfigIndex = 0;
   let editionCount = 1;
@@ -771,31 +781,19 @@ const startCreating = async () => {
 
       let currentEdition = editionCount - 1;
       let remainingInLayersOrder = layerConfigurations[layerConfigIndex].growEditionSizeTo - currentEdition;
-      
-      let newVariant = createVariation(layerVariations);
-      let variant = newVariant.split(':').pop();
-      let variantName = newVariant.split(':')[0];
 
-      let newDna = createDnaExact(layers, remainingInLayersOrder, currentEdition, variant, layerConfigIndex) 
+      let newDna = createDnaExact(layers, remainingInLayersOrder, currentEdition, layerConfigIndex);
 
       let duplicatesAllowed = (allowDuplicates) ? true : isDnaUnique(dnaList, newDna);
 
       if (duplicatesAllowed) {
         
         let results = constructLayerToDna(newDna, layers);
-        // console.log(results.selectedElement);
-        let variantMetadata = false
         // Add metadata from layers
         results.forEach((layer) => {
-          // console.log(layer.selectedElement);
           // Deduct selected layers from allTraitscount
           allTraitsCount[layer.name][layer.selectedElement.name]--;
 
-          Object.keys(layer).forEach(key => {
-            if(layer.layerVariations !== undefined) {
-              variantMetadata = true;
-            }
-          })
 
           addAttributes(layer);
         })
@@ -804,12 +802,6 @@ const startCreating = async () => {
         extraAttributes.forEach((attr) => {
           attributesList.push(attr);
         });
-        if (variantMetadata) {
-          attributesList.push({
-            trait_type: variantName,
-            value: variant,
-          });
-        }
         if (enableStats) {
           addStats();
           statList.forEach((stat) => {
