@@ -1,6 +1,6 @@
 This is a fork of Hashlip's art engine with several additional features and quality of life changes
 
-🛠️🛠️ Please note that this documentation may not be fully up to date. Stable version can be found in latest release. 🛠️🛠️
+🛠️🛠️ More features being added 🛠️🛠️
 
 <br/>
 If you have any questions, please feel free to ask me in the various channels I can be reached (Discord will be the most consistent)
@@ -104,7 +104,7 @@ You will be prompted in the terminal for any incompatibilities in your collectio
 With the default layers in this fork, we can define the following incompatibility (arbitraily chosen for demonstration): Eyes/EyeScar is not compatible with Back/StrapOnShark. We can tell the engine not to generate those items together like so:
 <br/>
 
-1) When running `npm generate`, you will be prompted whether you want to input any incompatible layers. 
+1) When running `npm run generate`, you will be prompted whether you want to input any incompatible layers. 
 ![incompatibility1](media/incompatibility_prompt_1.png)
 2) Select layer configuration index (if applicable)
 ![incompatibility2](media/incompatibility_prompt_2.png)
