@@ -55,9 +55,6 @@ const listCompatibility = async () => {
       const filePath = `${basePath}/layers/${layer.name}`
       const files = fs.readdirSync(filePath);
 
-      let layercount = files.length;
-      maxCombinations *= layercount;
-
       const imageFiles = files.filter(file => {
         const isFile = fs.statSync(path.join(filePath, file)).isFile();
         const isImage = /\.(png|gif)$/i.test(file);
@@ -67,6 +64,9 @@ const listCompatibility = async () => {
         }
         return isFile && isImage;
       });
+
+      let layercount = imageFiles.length;
+      maxCombinations *= layercount;
 
       imageFiles.forEach((file) => {
         const trait = cleanName(file);
