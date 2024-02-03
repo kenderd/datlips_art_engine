@@ -68,16 +68,24 @@ const runScript = async () => {
 
     const compatibilityOption = await selectCompatibilityOption.run();
 
+    if (compatibilityOption === choices[1].name) {
+      await addIncompatibility();
+    }
+
     if (compatibilityOption === choices[0].name || compatibilityOption === choices[1].name) {
       let children = Object.keys(incompatibilities);
       for (let i = 0; i < children.length; i++) {
-        await markIncompatible(
-          children[i],
-          incompatibilities[children[i]].incompatibleParent,
-          incompatibilities[children[i]].parentIndex,
-          incompatibilities[children[i]].childIndex,
-          incompatibilities[children[i]].layerIndex
-        )
+        let incompatibleParents = incompatibilities[children[i]].incompatibleParents;
+        for (let j = 0; j < incompatibleParents.length; j++) {
+          console.log(`Marking incompatibilities...`);
+          await markIncompatible(
+            children[i],
+            incompatibilities[children[i]].incompatibleParents[j],
+            incompatibilities[children[i]].parentIndex,
+            incompatibilities[children[i]].childIndex,
+            incompatibilities[children[i]].layerIndex
+          );
+        }
       }
     }
 

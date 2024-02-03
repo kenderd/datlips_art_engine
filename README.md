@@ -77,7 +77,6 @@ Use Node 18-20
 
 - GIF generation 👀
 - Image/Metadata IPFS upload
-- Cleanup of README for better readability
 - Adding bulk entry to incompatibility wizard
 - Adding terminal interaction for most metadata manipulation utilities to avoid direct script editing
 - Cleanup terminal output for rarity during generation

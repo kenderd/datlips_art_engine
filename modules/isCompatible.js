@@ -44,10 +44,17 @@ const layers = [];
 let compatibility = {};
 let nest = {}
 
+let traitCounts = {};
+
 const listCompatibility = async () => {
   layerConfigurations.forEach((layerConfig, configIndex) => {
+    let layerCombinations = 1;
     const layersOrder = layerConfig.layersOrder;
     const tempLayers = [];
+    let layerCounts = {};
+
+    layerCounts[configIndex] = {};
+    traitCounts[configIndex] = {};
 
     layersOrder.forEach((layer, layerIndex) => {
 
@@ -65,8 +72,10 @@ const listCompatibility = async () => {
         return isFile && isImage;
       });
 
-      let layercount = imageFiles.length;
-      maxCombinations *= layercount;
+      let layerCount = imageFiles.length;
+      layerCombinations *= layerCount;
+
+      layerCounts[configIndex][layer.name] = layerCount;
 
       imageFiles.forEach((file) => {
         const trait = cleanName(file);
@@ -82,6 +91,23 @@ const listCompatibility = async () => {
         }
       });
     });
+    let layerNames = Object.keys(layerCounts[configIndex]);
+    layerNames.forEach((layer) => {
+      traitCounts[configIndex][layer] = {}
+
+      let traits = Object.keys(compatibility[layer]);
+      let otherLayersTotal = 1;
+      for (let i = 0; i < layerNames.length; i++) {
+        if (layerNames[i] !== layer) {
+          otherLayersTotal *= layerCounts[configIndex][layerNames[i]]
+        }
+      }
+
+      traits.forEach((trait) => {
+        traitCounts[configIndex][layer][trait] = otherLayersTotal;
+      })
+    })
+    maxCombinations += layerCombinations;
     layers.push(tempLayers);
   });
 }
@@ -173,8 +199,18 @@ const markIncompatible = async (_child, _incompatibleParent, _parentIndex, _chil
     path.includes(_incompatibleParent)
   );
 
+  var incompatibleParents;
+
+  if (!incompatibilities[_child]) {
+    incompatibleParents = [];
+  } else {
+    incompatibleParents = incompatibilities[_child].incompatibleParents;
+  }
+
+  incompatibleParents.push(_incompatibleParent);
+
   let incompatibilty = {
-    incompatibleParent: _incompatibleParent,
+    incompatibleParents,
     parents,
     parentIndex: _parentIndex,
     childIndex: _childIndex,
@@ -197,8 +233,10 @@ const markIncompatible = async (_child, _incompatibleParent, _parentIndex, _chil
   }
 
   const removeCombination = filteredIncompatibleTraits.length;
+  const layer = layers[_layerIndex][_childIndex];
 
   maxCombinations -= removeCombination;
+  traitCounts[_layerIndex][layer][_child] -= removeCombination;
   
   const bar1 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
 
@@ -310,4 +348,4 @@ const countAndSave = () => {
   console.log(`Compatibility files created in ${basePath}/compatibility/`);
 }
 
-module.exports = { listCompatibility, nestedStructure, markIncompatible, checkCompatibility, countAndSave, nest };
+module.exports = { listCompatibility, nestedStructure, markIncompatible, checkCompatibility, countAndSave, traitCounts, nest };

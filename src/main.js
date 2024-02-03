@@ -45,7 +45,7 @@ const HashlipsGiffer = require(`${basePath}/modules/HashlipsGiffer.js`);
 const oldDna = `${basePath}/build_old/_oldDna.json`;
 // const nest = `${basePath}/compatibility/nest.json`;
 const incompatible = `${basePath}/compatibility/compatibility.json`
-const { nest } = require(`${basePath}/modules/isCompatible.js`);
+const { traitCounts, nest } = require(`${basePath}/modules/isCompatible.js`);
 const cliProgress = require('cli-progress');
 let compatibility = nest;
 let incompatibilities;
@@ -632,7 +632,7 @@ function shuffle(array) {
   return array;
 }
 
-const scaleWeight = (layer, layerWeight) => {
+const scaleWeight = (layer, layerWeight, layerConfigIndex) => {
   const totalWeight = layer.elements.reduce((sum, element) => sum + element.weight, 0);
 
   if (layer.elements.length > layerWeight) {
@@ -652,7 +652,8 @@ const scaleWeight = (layer, layerWeight) => {
 
     layer.elements.forEach((element) => {
       const scaledWeight = Math.max(1, Math.round((element.weight / totalWeight) * layerWeight));
-      maxCount = countInstances(compatibility, element.name);
+      // maxCount = countInstances(compatibility, element.name);
+      maxCount = traitCounts[layerConfigIndex][layer.ogName][element.name];
 
       allCounts[element.name] = maxCount;
 
@@ -708,7 +709,8 @@ const scaleWeight = (layer, layerWeight) => {
     }
   } else if (exactWeight) {
     layer.elements.forEach((element) =>{
-      maxCount = countInstances(compatibility, element.name);
+      // maxCount = countInstances(compatibility, element.name);
+      maxCount = traitCounts[layerConfigIndex][layer.ogName][element.name];
 
       if (element.weight > maxCount) {
         throw new Error(`Your ${element.name} trait's weight (${element.weight}) exceeds the maximum it`+
@@ -770,7 +772,7 @@ const startCreating = async () => {
       let layersOrderSize = layerConfigIndex == 0
         ? layerConfigurations[layerConfigIndex].growEditionSizeTo
         : layerConfigurations[layerConfigIndex].growEditionSizeTo - layerConfigurations[layerConfigIndex - 1].growEditionSizeTo;
-      scaleWeight(layer, layersOrderSize);
+      scaleWeight(layer, layersOrderSize, layerConfigIndex);
     });
     allTraitsCount = traitCount(layers);
     console.log(allTraitsCount)
