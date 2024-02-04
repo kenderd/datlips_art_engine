@@ -103,6 +103,15 @@ const statBlocks = [
   },
   {
     minValue: 1,
+    maxValue: 50,
+    attribute:
+    {
+      trait_type: "Stamina", 
+      value: 0
+    },
+  },
+  {
+    minValue: 1,
     maxValue: 999,
     attribute:
     {

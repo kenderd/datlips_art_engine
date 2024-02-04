@@ -270,7 +270,9 @@ const addStats = () => {
     statBlocks.forEach((stat) => {
     let min = stat.minValue;
     let max = stat.maxValue;
-    let updatedValue = Math.floor(Math.random() * (max - min + 1)) + min;
+    // let updatedValue = Math.floor(Math.random() * (max - min + 1)) + min;
+    let updatedValue = (Math.random() * (max - min + 1) + min).toFixed(1);
+    console.log(updatedValue);
     let newTrait = stat.attribute
     newTrait.value = updatedValue;
     statList.push(newTrait);
@@ -779,7 +781,7 @@ const startCreating = async () => {
     `(${growSizes}). Please ensure that collectionSize is defined in config.js, and double check your growEditionSizeTo to ensure they `+
     `add up to ${collectionSize}. `);
   }
-  
+
   while (layerConfigIndex < layerConfigurations.length) {
     const layers = layersSetup(
       layerConfigurations[layerConfigIndex].layersOrder
@@ -988,12 +990,14 @@ const createPNG = async () => {
     }
 
     for (const attr of item.attributes) {
-      ctx.globalAlpha = attr.imgData.opacity;
-      ctx.globalCompositeOperation = attr.imgData.blend;
+      if (attr.imgData) {
+        ctx.globalAlpha = attr.imgData.opacity;
+        ctx.globalCompositeOperation = attr.imgData.blend;
 
-      const img = await loadImage(attr.imgData.path);
+        const img = await loadImage(attr.imgData.path);
 
-      ctx.drawImage(img, 0, 0, format.width, format.height);
+        ctx.drawImage(img, 0, 0, format.width, format.height);
+      }
     }
 
     if (i == 1) {
