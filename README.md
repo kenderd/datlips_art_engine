@@ -54,7 +54,7 @@ Use Node 18-20
 
 ## Resume creation
 - [Generate NFT in stages](#generate-nft-in-stages)
-  - [resumeNum Example](#resumenum-example)
+  - [resumeNum example](#resumenum-example)
 
 ## Allow duplicate images/metadata
 - [Allow duplicate images to be duplicated](#allow-duplicates)
@@ -67,6 +67,7 @@ Use Node 18-20
 
 ## Set layer configurations to desired size
 - [set growEditionSizeTo per layer configuration, instead of cumulatively](#non-cumulative-growEditionSizeTo)
+  - [growEditionSizeTo example](#growEditionSizeTo-example)
 
 ## Utils
 - [cleanMetadata](#cleanmetadata)
@@ -304,6 +305,40 @@ const format = {
 `growEditionSizeTo` is no longer cumulatively defined. You can now set this number to simply represent the number of images you want generated within that layer configuration. <br/>
 **NOTE**: `collectionSize` must be defined, and match the total of your `growEditionSizeTo`s. 
 
+## grgrowEditionSizeTo example
+The default setup in config.js demonstrates this system:
+```js
+const layerConfigurations = [
+  {
+    // NOTE!! growEditionSizeTo should be set to the number of images you want generate within each layer configuration
+    growEditionSizeTo: 50, // << This will generate 50 images with this layersOrder
+    namePrefix: collectionName,
+    description: description,
+    layersOrder: [
+      { name: "Variant", options: { displayName: "Color" } },
+      { name: "Arms" },
+      { name: "Back" },
+      { name: "Body" },
+      { name: "Eyes" },
+      { name: "Head" },
+      { name: "Legs" },
+      { name: "Mouth" },
+    ],
+  },
+  {
+    growEditionSizeTo: 15, // This will generate 15 images with this layersOrder
+    namePrefix: 'Alternate Name',
+    description: 'Alternate Description for this set of tokens',
+    layersOrder: [
+      { name: "Arms" },
+      { name: "Back" },
+      { name: "Body" },
+      { name: "Head" },
+      { name: "Mouth" },
+    ],
+  },
+];
+```
 # Utils
 
 ## cleanMetadata

@@ -42,8 +42,8 @@ const shuffleLayerConfigurations = true;
 
 const layerConfigurations = [
   {
-    // NOTE!! growEditionSizeTo should be the number of images you want ge
-    growEditionSizeTo: 50,
+    // NOTE!! growEditionSizeTo should be set to the number of images you want generate within each layer configuration
+    growEditionSizeTo: 50, // << This will generate 50 images with this layersOrder
     namePrefix: collectionName,
     description: description,
     layersOrder: [
@@ -58,7 +58,7 @@ const layerConfigurations = [
     ],
   },
   {
-    growEditionSizeTo: 15,
+    growEditionSizeTo: 15, // This will generate 15 images with this layersOrder
     namePrefix: 'Alternate Name',
     description: 'Alternate Description for this set of tokens',
     layersOrder: [
