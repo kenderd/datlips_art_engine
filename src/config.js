@@ -2,7 +2,7 @@ const basePath = process.cwd();
 const { MODE } = require(`${basePath}/constants/blend_mode.js`);
 const { NETWORK } = require(`${basePath}/constants/network.js`);
 
-const collectionSize = 30;
+const collectionSize = 65;
 
 // ********* Advanced weight options *********
 /* 
@@ -42,7 +42,8 @@ const shuffleLayerConfigurations = true;
 
 const layerConfigurations = [
   {
-    growEditionSizeTo: collectionSize/2,
+    // NOTE!! growEditionSizeTo should be the number of images you want ge
+    growEditionSizeTo: 50,
     namePrefix: collectionName,
     description: description,
     layersOrder: [
@@ -57,7 +58,7 @@ const layerConfigurations = [
     ],
   },
   {
-    growEditionSizeTo: collectionSize,
+    growEditionSizeTo: 15,
     namePrefix: 'Alternate Name',
     description: 'Alternate Description for this set of tokens',
     layersOrder: [

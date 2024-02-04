@@ -65,6 +65,9 @@ Use Node 18-20
 ## Individual name and description per layer configuration
 - [Assign unique name and description per layer configuration](#unique-name-and-description)
 
+## Set layer configurations to desired size
+- [set growEditionSizeTo per layer configuration, instead of cumulatively](#non-cumulative-growEditionSizeTo)
+
 ## Utils
 - [cleanMetadata](#cleanmetadata)
 - [removeAttributes](#removeattributes)
@@ -296,6 +299,10 @@ const format = {
 
 # Unique name and description
 `namePrefix` and `description` have been moved to be contained within `layerConfigurations`. This allows separate names and descriptions based on the specific traits being selected.  
+
+# Non cumulative growEditionSizeTo
+`growEditionSizeTo` is no longer cumulatively defined. You can now set this number to simply represent the number of images you want generated within that layer configuration. <br/>
+**NOTE**: `collectionSize` must be defined, and match the total of your `growEditionSizeTo`s. 
 
 # Utils
 

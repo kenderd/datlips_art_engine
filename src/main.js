@@ -433,7 +433,8 @@ const isDnaUnique = (_DnaList = new Set(), _dna = "") => {
   return !_DnaList.has(_filteredDNA);
 };
 
-const createDnaExact = (_layers, _remainingInLayersOrder, _currentEdition, layerConfigIndex) => {
+// const createDnaExact = (_layers, _remainingInLayersOrder, _currentEdition, layerConfigIndex) => {
+const createDnaExact = (_layers, layerConfigIndex) => {
   let randNum = [];
   let nestLookup = []
 
@@ -748,43 +749,65 @@ const traitCount = (_layers) => {
 const startCreating = async () => {
   let layerConfigIndex = 0;
   let editionCount = 1;
+  let cumulativeEditionSize = 0;
   let failedCount = 0;
   let abstractedIndexes = [];
   const startNum = network == NETWORK.sol || network == NETWORK.sei ? 0 : 1;
   for (
     let i = startNum;
-    i <= layerConfigurations[layerConfigurations.length - 1].growEditionSizeTo;
+    // i <= layerConfigurations[layerConfigurations.length - 1].growEditionSizeTo;
+    i <= collectionSize;
     i++
   ) {
     abstractedIndexes.push(i);
   }
+  // console.log(abstractedIndexes);
   if (shuffleLayerConfigurations) {
     abstractedIndexes = shuffle(abstractedIndexes);
   }
   debugLogs
     ? console.log("Editions left to create: ", abstractedIndexes)
     : null;
+
+  let growSizes = 0;
+  layerConfigurations.forEach((layerConfig) => {
+    growSizes += layerConfig.growEditionSizeTo;
+  })
+
+  if (growSizes != collectionSize) {
+    throw new Error(`Your collectionSize (${collectionSize}) does not match the total of your growEditionSizeTo in layerConfigurations `+
+    `(${growSizes}). Please ensure that collectionSize is defined in config.js, and double check your growEditionSizeTo to ensure they `+
+    `add up to ${collectionSize}. `);
+  }
+  
   while (layerConfigIndex < layerConfigurations.length) {
     const layers = layersSetup(
       layerConfigurations[layerConfigIndex].layersOrder
     );
+    
+    let layersOrderSize = layerConfigurations[layerConfigIndex].growEditionSizeTo;
+    // console.log(`layersOrderSize: ${layersOrderSize}`);
+    cumulativeEditionSize += layersOrderSize;
+    // console.log(`cumulativeEditionSize: ${cumulativeEditionSize}`);
     layers.forEach((layer) => {
-      let layersOrderSize = layerConfigIndex == 0
-        ? layerConfigurations[layerConfigIndex].growEditionSizeTo
-        : layerConfigurations[layerConfigIndex].growEditionSizeTo - layerConfigurations[layerConfigIndex - 1].growEditionSizeTo;
+      // let layersOrderSize = layerConfigIndex == 0
+      //   ? layerConfigurations[layerConfigIndex].growEditionSizeTo
+      //   : layerConfigurations[layerConfigIndex].growEditionSizeTo - layerConfigurations[layerConfigIndex - 1].growEditionSizeTo;
       scaleWeight(layer, layersOrderSize, layerConfigIndex);
     });
     allTraitsCount = traitCount(layers);
-    console.log(allTraitsCount)
+    // console.log(allTraitsCount)
     debugLogs ? console.log(allTraitsCount) : null;
     while (
-      editionCount <= layerConfigurations[layerConfigIndex].growEditionSizeTo
+      // editionCount <= layerConfigurations[layerConfigIndex].growEditionSizeTo
+      editionCount <= cumulativeEditionSize
     ) {
 
-      let currentEdition = editionCount - 1;
-      let remainingInLayersOrder = layerConfigurations[layerConfigIndex].growEditionSizeTo - currentEdition;
+      // let currentEdition = editionCount - 1;
+      // let remainingInLayersOrder = layerConfigurations[layerConfigIndex].growEditionSizeTo - currentEdition;
 
-      let newDna = createDnaExact(layers, remainingInLayersOrder, currentEdition, layerConfigIndex);
+      // let newDna = createDnaExact(layers, remainingInLayersOrder, currentEdition, layerConfigIndex);
+      let newDna = createDnaExact(layers, layerConfigIndex);
 
       let duplicatesAllowed = (allowDuplicates) ? true : isDnaUnique(dnaList, newDna);
 
@@ -832,7 +855,7 @@ const startCreating = async () => {
         failedCount++;
         if (failedCount >= uniqueDnaTorrance) {
           console.log(
-            `You need more layers or elements to grow your edition to ${layerConfigurations[layerConfigIndex].growEditionSizeTo} artworks!`
+            `You need more layers or elements to grow your edition to ${collectionSize} artworks!`
           );
           process.exit();
         }
