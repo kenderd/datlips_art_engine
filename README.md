@@ -305,7 +305,7 @@ const format = {
 `growEditionSizeTo` is no longer cumulatively defined. You can now set this number to simply represent the number of images you want generated within that layer configuration. <br/>
 **NOTE**: `collectionSize` must be defined, and match the total of your `growEditionSizeTo`s. 
 
-## grgrowEditionSizeTo example
+## growEditionSizeTo example
 The default setup in config.js demonstrates this system:
 ```js
 const layerConfigurations = [
