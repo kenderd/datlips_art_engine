@@ -246,20 +246,15 @@ const markIncompatible = async (_child, _incompatibleParent, _parentIndex, _chil
   for (let i = 0; i < filteredIncompatibleTraits.length; i++) {
     bar1.update(i + 1);
     const pathToDelete = filteredIncompatibleTraits[i];
-    let nestedObjectCopy = deepCopy(nest);
-    let currentObj = nestedObjectCopy[_layerIndex];
-  
-    for (const segment of pathToDelete) {
-      if (currentObj && currentObj.hasOwnProperty(segment) && Object.keys(currentObj[segment]).length !== 0) {
-        if(_child != segment) {
-          currentObj = currentObj[segment];
-        }
-      }
+    let object = nest[_layerIndex];
+
+    // Handle array-based paths
+    for (let i = 0; i < pathToDelete.length - 1; i++) {
+      object = object[pathToDelete[i]];
+      if (!object) return; // Early return if part of the path doesn't exist
     }
 
-    delete currentObj[_child];
-
-    nest = nestedObjectCopy
+    delete nest[_layerIndex][pathToDelete[pathToDelete.length - 1]];
   }
 
   bar1.stop();
