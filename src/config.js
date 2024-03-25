@@ -2,7 +2,7 @@ const basePath = process.cwd();
 const { MODE } = require(`${basePath}/constants/blend_mode.js`);
 const { NETWORK } = require(`${basePath}/constants/network.js`);
 
-const collectionSize = 65;
+const collectionSize = 100;
 
 // ********* Advanced weight options *********
 /* 
@@ -10,6 +10,7 @@ const collectionSize = 65;
 * Note that your weights must add up to the total number
 * you want of that trait.
 */
+
 const exactWeight = false;
 
 // Options: eth, sol, sei
@@ -17,14 +18,13 @@ const exactWeight = false;
 const network = NETWORK.eth;
 
 // General metadata
-const collectionName = "Your Collection";
-const symbol = "YC";
-const description = "Remember to replace this description";
-const baseUri = "ipfs://TESTING";
+const collectionName = "YEET";
+const symbol = "YEET";
+const description = "YEET DESCRIPTION";
+const baseUri = "ipfs://YEETTESTBABY";
 
 const solanaMetadata = {
   seller_fee_basis_points: 1000, // Define how much % you want from secondary market sales 1000 = 10%
-  external_url: "https://linktr.ee/datboi1337",
   creators: [
     {
       address: "8DsAhDisG5eYjBwedSiakTKwrYCWpQ4tNDRuZyniMXaX",
@@ -43,30 +43,22 @@ const shuffleLayerConfigurations = true;
 const layerConfigurations = [
   {
     // NOTE!! growEditionSizeTo should be set to the number of images you want generate within each layer configuration
-    growEditionSizeTo: 50, // << This will generate 50 images with this layersOrder
+    growEditionSizeTo: 100, // << This will generate 50 images with this layersOrder
     namePrefix: collectionName,
     description: description,
     layersOrder: [
-      { name: "Variant", options: { displayName: "Color" } },
-      { name: "Arms" },
-      { name: "Back" },
+      { name: "Backgrounds" },
+      { name: "FullSets" },
+      { name: "SpecialBody" },
+      { name: "BaseBody" },
+      { name: "BaseHead" },
+      { name: "Waterfall" },
       { name: "Body" },
-      { name: "Eyes" },
-      { name: "Head" },
-      { name: "Legs" },
-      { name: "Mouth" },
-    ],
-  },
-  {
-    growEditionSizeTo: 15, // This will generate 15 images with this layersOrder
-    namePrefix: 'Alternate Name',
-    description: 'Alternate Description for this set of tokens',
-    layersOrder: [
-      { name: "Arms" },
-      { name: "Back" },
-      { name: "Body" },
-      { name: "Head" },
-      { name: "Mouth" },
+      { name: "EyeHighlights" },
+      { name: "Glasses" },
+      { name: "Hats" },
+      { name: "TopOfTheHead" },
+      { name: "Hands" },
     ],
   },
 ];
@@ -198,11 +190,9 @@ const preview_gif = {
 * Common vs Mythic is 100:1 in the default state, for example.
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 const rarity_config = {
-  Mythic: 1,
-  Legendary: 6,
-  Epic: 15,
-  Rare: 31,
-  Uncommon: 56,
+  Legendary: 2,
+  Epic: 8,
+  Rare: 20,
   Common: 100,
 };
 
