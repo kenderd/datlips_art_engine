@@ -208,7 +208,6 @@ const addMetadata = (_dna, _name, _desc, _edition) => {
     ...extraMetadata,
     attributes: attributesList,
     dna: sha1(_dna),
-    compiler: "datboi1337 Art Engine (Hashlips fork)",
   };
   if (network == NETWORK.sol) {
     tempMetadata = {
@@ -246,7 +245,6 @@ const addMetadata = (_dna, _name, _desc, _edition) => {
       ...extraMetadata,
       attributes: attributesList,
       dna: sha1(_dna),
-      compiler: "datboi1337 Art Engine (Hashlips fork)",
     }
   }
   metadataList.push(tempMetadata);
