@@ -1,7 +1,7 @@
 {
   "name": "datlips_art_engine",
   "version": "1.0.0",
-  "description": "Datlips Art Engine (Hashlips fork) is a tool used to create multiple different instances of artworks based on provided layers.",
+  "description": "",
   "main": "index.js",
   "bin": "index.js",
   "pkg": {
